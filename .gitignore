@@ -3,3 +3,9 @@ etc/odoo-server.log*
 etc/addons/
 etc/sessions/
 etc/filestore/
+.env
+*.env
+.vscode/
+addons/
+
+
