@@ -17,3 +17,6 @@ etc/filestore/
 # IDE & nested repositories
 .vscode/
 addons/
+
+# Assets
+screenshots/
