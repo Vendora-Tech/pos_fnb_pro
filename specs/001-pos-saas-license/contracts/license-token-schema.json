@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PosSaasLicenseTokenPayload",
+  "type": "object",
+  "properties": {
+    "lid": {
+      "type": "string",
+      "description": "Unique License Identifier (e.g., LIC-2026-FNB-0089)"
+    },
+    "mch": {
+      "type": "string",
+      "description": "Merchant business entity name"
+    },
+    "typ": {
+      "type": "string",
+      "enum": ["subscription", "perpetual"],
+      "description": "Sales and monetization model type"
+    },
+    "db_uuid": {
+      "type": "string",
+      "description": "Bound Odoo database UUID"
+    },
+    "mods": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "List of allowed SaaS addon modules"
+    },
+    "max_reg": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Maximum allowed POS register configurations"
+    },
+    "from": {
+      "type": "string",
+      "format": "date",
+      "description": "Effective start date (YYYY-MM-DD)"
+    },
+    "until": {
+      "type": ["string", "null"],
+      "format": "date",
+      "description": "Expiration date for subscriptions, or null for perpetual"
+    },
+    "grace": {
+      "type": "integer",
+      "minimum": 0,
+      "default": 7,
+      "description": "Grace period tolerance days after expiration date"
+    }
+  },
+  "required": ["lid", "mch", "typ", "db_uuid", "max_reg", "from"],
+  "additionalProperties": false
+}

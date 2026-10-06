@@ -1,11 +1,19 @@
+# Credentials & Environment
+.env
+*.env
+
+# Local agent caches
+.claude/
+
+# Database storage
 postgresql/
+
+# Odoo logs & runtime data
 etc/odoo-server.log*
 etc/addons/
 etc/sessions/
 etc/filestore/
-.env
-*.env
+
+# IDE & nested repositories
 .vscode/
 addons/
-
-

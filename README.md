@@ -1,6 +1,7 @@
-# Installing Odoo 20 (2026 release)
+# pos_fnb_pro
 
-Set up **Odoo 20** in a single command using Docker Compose — with support for running multiple Odoo instances on one server.
+SaaS Point of Sale (POS) Ecosystem berbasis Odoo 20.0 (LTS 2026).
+
 
 > **Default master password:** `minhng.info` — change it before going live.
 
