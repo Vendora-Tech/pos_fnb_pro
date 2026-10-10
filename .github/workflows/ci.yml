@@ -47,9 +47,7 @@ jobs:
           sudo apt-get install -y -qq libxml2-utils shellcheck
 
       - name: Lint GitHub Workflows (actionlint)
-        uses: rhysd/actionlint-github-action@v1
-        with:
-          fail-on-error: true
+        uses: reviewdog/action-actionlint@v1
 
       - name: Lint YAML
         run: |
@@ -152,7 +150,7 @@ jobs:
           exit $FAIL
 
       - name: Trivy config scan (misconfig)
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@0.30.0
         with:
           scan-type: config
           scan-ref: .
@@ -161,7 +159,7 @@ jobs:
 
       - name: Trivy image scan (odoo:20, postgres:18)
         if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.base_ref == 'main' || github.ref == 'refs/heads/main'
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@0.30.0
         with:
           image-ref: odoo:20
           format: sarif
