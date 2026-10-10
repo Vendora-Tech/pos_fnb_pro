@@ -14,9 +14,11 @@ etc/addons/
 etc/sessions/
 etc/filestore/
 
-# IDE & nested repositories
+# IDE
 .vscode/
-addons/
+
+# Odoo custom modules in addons/ ARE tracked (CI module-test needs them).
+# Junk inside addons/ is ignored via addons/.gitignore
 
 # Assets
 screenshots/

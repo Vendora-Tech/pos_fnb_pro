@@ -1,0 +1,302 @@
+name: CI
+
+on:
+  push:
+    branches: [dev, main]
+  pull_request:
+    branches: [dev, main]
+  schedule:
+    # Nightly full scan (02:00 UTC)
+    - cron: "0 2 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  POSTGRES_USER: odoo20_user
+  POSTGRES_PASSWORD: test_only_password_ci
+  POSTGRES_DB: postgres
+  ODOO_WEB_PORT: 10020
+  ODOO_CHAT_PORT: 20020
+  DB_NAME: pos_saas_dev
+
+jobs:
+  # ------------------------------------------------------------------
+  # JOB 1: Lint & Validate — cepat, tanpa Docker (<3 menit)
+  # 80% error Odoo = XML invalid / manifest rusak / compose typo
+  # ------------------------------------------------------------------
+  lint-validate:
+    name: Lint & Validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install linters
+        run: |
+          pip install --quiet yamllint ruff
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libxml2-utils shellcheck
+
+      - name: Lint GitHub Workflows (actionlint)
+        uses: rhysd/actionlint-github-action@v1
+        with:
+          fail-on-error: true
+
+      - name: Lint YAML
+        run: |
+          yamllint -d "{extends: default, rules: {line-length: {max: 160}, truthy: disable}}" \
+            docker-compose.yml .github/workflows/*.yml
+
+      - name: Validate Compose config
+        run: docker compose config > /dev/null
+
+      - name: ShellCheck entrypoint & scripts
+        run: |
+          shellcheck -S warning entrypoint.sh run.sh
+
+      - name: Python syntax + Ruff (addons/)
+        run: |
+          echo "== py_compile =="
+          if find addons -name "*.py" -print -quit | grep -q .; then
+            find addons -name "*.py" -exec python3 -m py_compile {} +
+            echo "== ruff check =="
+            ruff check addons/ || true
+            echo "== ruff format (check only) =="
+            ruff format --check addons/ || true
+          else
+            echo "No Python files in addons/ — skip"
+          fi
+
+      - name: Validate Odoo XML views
+        run: |
+          if find addons -name "*.xml" -print -quit | grep -q .; then
+            find addons -name "*.xml" -exec xmllint --noout {} +
+          else
+            echo "No XML files in addons/ — skip"
+          fi
+
+      - name: Validate __manifest__.py
+        run: |
+          python3 - <<'PY'
+          import ast, pathlib, sys
+          manifests = list(pathlib.Path("addons").rglob("__manifest__.py"))
+          # abaikan file contoh / scaffold yang belum jadi modul
+          manifests = [m for m in manifests if m.parent.name != "addons"]
+          if not manifests:
+              print("No Odoo modules in addons/ — skip (template ready for pos_qris, etc.)")
+              sys.exit(0)
+          ok = True
+          for m in manifests:
+              print(f"Checking {m}")
+              try:
+                  tree = ast.parse(m.read_text())
+                  data = ast.literal_eval(tree.body[0].value)
+                  assert isinstance(data, dict), "manifest must be a dict"
+                  for key in ("name", "version", "depends"):
+                      if key not in data:
+                          print(f"  WARN: {m} missing key '{key}'")
+              except Exception as e:
+                  print(f"  FAIL: {m}: {e}")
+                  ok = False
+          sys.exit(0 if ok else 1)
+          PY
+
+  # ------------------------------------------------------------------
+  # JOB 2: Security & Secrets — wajib (odoo.conf pernah commit password)
+  # ------------------------------------------------------------------
+  security:
+    name: Security & Secrets
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Gitleaks (secret scan)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Guard sensitive files & hardcoded passwords
+        run: |
+          echo "== ensure .env / secrets not tracked =="
+          FAIL=0
+          for f in $(git ls-files); do
+            case "$f" in
+              .env|*.env|postgresql/*|etc/odoo-server.log*|etc/sessions/*|etc/filestore/*)
+                echo "FAIL: sensitive file tracked: $f"; FAIL=1 ;;
+            esac
+          done
+          echo "== check hardcoded admin_passwd in etc/odoo.conf =="
+          if grep -Eq '^\s*admin_passwd\s*=\s*[^[:space:]]+' etc/odoo.conf; then
+            echo "::warning::etc/odoo.conf contains hardcoded admin_passwd — move to ODOO_MASTER_PASSWORD env before going live"
+          fi
+          echo "== check POSTGRES_PASSWORD hardcoded in compose =="
+          if grep -Eq 'POSTGRES_PASSWORD:\s*.+' docker-compose.yml | grep -qv '\${'; then
+            echo "::warning::docker-compose.yml may hardcode POSTGRES_PASSWORD"
+          fi
+          exit $FAIL
+
+      - name: Trivy config scan (misconfig)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: config
+          scan-ref: .
+          format: table
+          exit-code: "0"
+
+      - name: Trivy image scan (odoo:20, postgres:18)
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.base_ref == 'main' || github.ref == 'refs/heads/main'
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: odoo:20
+          format: sarif
+          output: trivy-odoo.sarif
+          exit-code: "0"
+
+  # ------------------------------------------------------------------
+  # JOB 3: Compose Smoke Test — nyalakan stack beneran
+  # ------------------------------------------------------------------
+  smoke-test:
+    name: Compose Smoke Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: [lint-validate, security]
+    # hemat runner: di push ke dev cukup lint+security, smoke jalan di PR + main + nightly/manual
+    if: >
+      github.event_name == 'pull_request' ||
+      github.event_name == 'schedule' ||
+      github.event_name == 'workflow_dispatch' ||
+      github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Compose
+        run: docker compose version
+
+      - name: Boot stack
+        run: |
+          mkdir -p postgresql addons etc
+          chmod -R 777 postgresql addons etc || true
+          docker compose up -d
+          docker compose ps
+
+      - name: Wait PostgreSQL
+        run: make wait-db
+
+      - name: Wait Odoo registry
+        run: make wait-odoo
+
+      - name: HTTP health check
+        run: |
+          curl -f --retry 5 --retry-delay 5 http://localhost:${ODOO_WEB_PORT:-10020}/web/login
+          echo "Odoo login page OK"
+
+      - name: Dump logs on failure
+        if: failure()
+        run: |
+          docker compose ps
+          docker compose logs --tail=300 odoo20 || true
+          docker compose logs --tail=100 db || true
+
+      - name: Teardown
+        if: always()
+        run: docker compose down -v
+
+  # ------------------------------------------------------------------
+  # JOB 4: Odoo Module Install & Test — template siap pakai
+  # Skip otomatis kalau addons/ masih kosong
+  # ------------------------------------------------------------------
+  module-test:
+    name: Odoo Module Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: [lint-validate]
+    if: >
+      github.event_name == 'pull_request' ||
+      github.event_name == 'schedule' ||
+      github.event_name == 'workflow_dispatch' ||
+      github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Discover custom modules
+        id: discover
+        run: |
+          MODS=$(python3 - <<'PY'
+          import pathlib
+          mods = sorted(p.parent.name for p in pathlib.Path("addons").rglob("__manifest__.py") if p.parent.name != "addons")
+          print(",".join(mods))
+          PY
+          )
+          echo "modules=$MODS" >> "$GITHUB_OUTPUT"
+          if [ -z "$MODS" ]; then
+            echo "No custom modules in addons/ — job will skip install (template ready)."
+          else
+            echo "Found modules: $MODS"
+          fi
+
+      - name: Boot stack for module test
+        if: steps.discover.outputs.modules != ''
+        run: |
+          mkdir -p postgresql addons etc
+          chmod -R 777 postgresql addons etc || true
+          docker compose up -d
+          make wait-db
+          make wait-odoo
+
+      - name: Install + test modules
+        if: steps.discover.outputs.modules != ''
+        run: |
+          MODS="${{ steps.discover.outputs.modules }}"
+          echo "Installing: $MODS"
+          docker exec odoo20-pos-odoo20-1 odoo \
+            --db_host=db -d ci_test \
+            -r "$POSTGRES_USER" -w "$POSTGRES_PASSWORD" \
+            -i "$MODS" --test-enable --stop-after-init \
+            --without-demo=all --log-level=test || \
+          docker exec odoo20-pos-odoo20-1 odoo \
+            --db_host=db -d ci_test \
+            -r "$POSTGRES_USER" -w "$POSTGRES_PASSWORD" \
+            -i "$MODS" --test-enable --stop-after-init \
+            --log-level=test
+
+      - name: Upgrade all (regression)
+        if: steps.discover.outputs.modules != ''
+        run: |
+          docker exec odoo20-pos-odoo20-1 odoo \
+            --db_host=db -d ci_test \
+            -r "$POSTGRES_USER" -w "$POSTGRES_PASSWORD" \
+            -u all --stop-after-init --log-level=error
+
+      - name: Pylint-Odoo (OCA convention, non-blocking)
+        if: steps.discover.outputs.modules != ''
+        run: |
+          docker exec odoo20-pos-odoo20-1 pip install -q oca-odoo-pre-commit pylint-odoo 2>&1 | tail -n 5 || true
+          docker exec odoo20-pos-odoo20-1 python3 -m pylint --load-plugins=pylint_odoo \
+            --disable=all --enable=odoolint /mnt/extra-addons || true
+
+      - name: Dump logs on failure
+        if: failure() && steps.discover.outputs.modules != ''
+        run: |
+          docker compose logs --tail=400 odoo20 || true
+
+      - name: Teardown
+        if: always() && steps.discover.outputs.modules != ''
+        run: docker compose down -v
