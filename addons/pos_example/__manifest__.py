@@ -7,7 +7,7 @@
     "category": "Point of Sale",
     "depends": ["base"],
     "data": [
-        "security/ir.model.access.csv",
+        "security/ir.access.csv",
         "views/example_tag_views.xml",
     ],
     "installable": True,
