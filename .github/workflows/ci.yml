@@ -124,10 +124,19 @@ jobs:
         with:
           fetch-depth: 0
 
+      # CLI langsung: gitleaks-action@v2 mewajibkan GITLEAKS_LICENSE untuk repo organisasi
       - name: Gitleaks (secret scan)
-        uses: gitleaks/gitleaks-action@v2
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_VERSION: "8.29.1"
+        run: |
+          asset="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          base="https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}"
+          cd "$RUNNER_TEMP" || exit 1
+          curl -sSfL "${base}/${asset}" -o "${asset}"
+          curl -sSfL "${base}/gitleaks_${GITLEAKS_VERSION}_checksums.txt" -o checksums.txt
+          grep " ${asset}\$" checksums.txt | sha256sum -c -
+          tar -xzf "${asset}" gitleaks
+          ./gitleaks git --redact --no-banner --verbose "$GITHUB_WORKSPACE"
 
       - name: Guard sensitive files & hardcoded passwords
         run: |
@@ -150,7 +159,7 @@ jobs:
           exit $FAIL
 
       - name: Trivy config scan (misconfig)
-        uses: aquasecurity/trivy-action@0.30.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25  # v0.36.0
         with:
           scan-type: config
           scan-ref: .
@@ -159,7 +168,7 @@ jobs:
 
       - name: Trivy image scan (odoo:20, postgres:18)
         if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.base_ref == 'main' || github.ref == 'refs/heads/main'
-        uses: aquasecurity/trivy-action@0.30.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25  # v0.36.0
         with:
           image-ref: odoo:20
           format: sarif
