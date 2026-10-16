@@ -48,5 +48,15 @@
     }
   },
   "required": ["lid", "mch", "typ", "db_uuid", "max_reg", "from"],
-  "additionalProperties": false
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": { "properties": { "typ": { "const": "subscription" } } },
+      "then": { "required": ["until"], "properties": { "until": { "type": "string" } } }
+    },
+    {
+      "if": { "properties": { "typ": { "const": "perpetual" } } },
+      "then": { "properties": { "until": { "type": "null" } } }
+    }
+  ]
 }

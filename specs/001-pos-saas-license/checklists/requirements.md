@@ -2,7 +2,7 @@
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning  
 **Created**: 2026-10-06  
-**Feature**: [spec.md](file:///home/nuralimsyah/Projects/ngulik_odoo/odoo-20/specs/001-pos-saas-license/spec.md)
+**Feature**: [spec.md](../spec.md)
 
 ## Content Quality
 

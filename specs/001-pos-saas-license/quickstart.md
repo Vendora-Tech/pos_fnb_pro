@@ -8,45 +8,21 @@
 
 ## 1. Menghasilkan Pasangan Kunci & Token Uji Coba (CLI)
 
-Gunakan utilitas CLI generator berbasis Python untuk membuat Ed25519 keypair dan token simulasi:
+Gunakan tool di `scripts/license_tools/` (lihat `scripts/license_tools/README.md`). Private key disimpan di luar repository atau di path yang di-ignore git.
 
-```python
-# scripts/generate_test_token.py
-import json
-import base64
-from cryptography.hazmat.primitives.asymmetric import ed25519
+```bash
+# 1. Buat keypair dev. Public key + kid dicetak untuk ditempel ke PUBLIC_KEYS di license_verifier.py
+python scripts/license_tools/generate_keypair.py --kid dev2026 --out ~/.pos_saas_keys/dev2026.pem
 
-# 1. Generate Keypair
-private_key = ed25519.Ed25519PrivateKey.generate()
-public_key = private_key.public_key()
-
-pub_bytes = public_key.public_bytes_raw()
-print("PUBLIC KEY (Paste ke models/verifier.py):", base64.b64encode(pub_bytes).decode())
-
-# 2. Buat Payload Token Simulasi
-payload = {
-    "lid": "LIC-2026-TEST-001",
-    "mch": "Toko Sukses Makmur",
-    "typ": "subscription",
-    "db_uuid": "TARGET_DB_UUID_HERE",
-    "mods": ["pos_base"],
-    "max_reg": 2,
-    "from": "2026-01-01",
-    "until": "2026-12-31",
-    "grace": 7
-}
-
-payload_json = json.dumps(payload, separators=(',', ':')).encode()
-payload_b64 = base64.urlsafe_b64encode(payload_json).rstrip(b'=').decode()
-
-# 3. Tanda Tangani Payload
-sig = private_key.sign(payload_b64.encode())
-sig_b64 = base64.urlsafe_b64encode(sig).rstrip(b'=').decode()
-
-# Token Lengkap JWS format: payload.signature
-token_string = f"{payload_b64}.{sig_b64}"
-print("\nTOKEN LISENSI SIAP PAKAI:\n", token_string)
+# 2. Terbitkan token. db_uuid diambil dari halaman License Management (field Database UUID)
+python scripts/license_tools/issue_token.py \
+  --key ~/.pos_saas_keys/dev2026.pem --kid dev2026 \
+  --lid LIC-2026-TEST-001 --mch "Toko Sukses Makmur" \
+  --typ subscription --db-uuid <DATABASE_UUID> \
+  --max-reg 2 --from 2026-01-01 --until 2026-12-31 --grace 7
 ```
+
+Format token: `header.payload.signature` (base64url tanpa padding). Header `{"alg":"EdDSA","typ":"SAAS-LIC","kid":"dev2026"}`, signature Ed25519 atas `header_b64 + "." + payload_b64`. Untuk perpetual gunakan `--typ perpetual` tanpa `--until`.
 
 ---
 

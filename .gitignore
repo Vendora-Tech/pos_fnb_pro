@@ -17,6 +17,16 @@ etc/filestore/
 # IDE
 .vscode/
 
+# Python & tooling caches (addons/.gitignore hanya menutup addons/)
+__pycache__/
+*.py[cod]
+.ruff_cache/
+.pytest_cache/
+
+# License private keys (never commit; CI Gitleaks will fail otherwise)
+*.pem
+scripts/license_tools/keys/
+
 # Odoo custom modules in addons/ ARE tracked (CI module-test needs them).
 # Junk inside addons/ is ignored via addons/.gitignore
 

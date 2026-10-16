@@ -264,12 +264,12 @@ jobs:
         run: |
           MODS="${{ steps.discover.outputs.modules }}"
           echo "Installing: $MODS"
-          docker exec odoo20-pos-odoo20-1 odoo \
+          docker compose exec -T odoo20 odoo \
             --db_host=db -d ci_test \
             -r "$POSTGRES_USER" -w "$POSTGRES_PASSWORD" \
             -i "$MODS" --test-enable --stop-after-init \
             --without-demo=all --log-level=test || \
-          docker exec odoo20-pos-odoo20-1 odoo \
+          docker compose exec -T odoo20 odoo \
             --db_host=db -d ci_test \
             -r "$POSTGRES_USER" -w "$POSTGRES_PASSWORD" \
             -i "$MODS" --test-enable --stop-after-init \
@@ -278,7 +278,7 @@ jobs:
       - name: Upgrade all (regression)
         if: steps.discover.outputs.modules != ''
         run: |
-          docker exec odoo20-pos-odoo20-1 odoo \
+          docker compose exec -T odoo20 odoo \
             --db_host=db -d ci_test \
             -r "$POSTGRES_USER" -w "$POSTGRES_PASSWORD" \
             -u all --stop-after-init --log-level=error
@@ -286,8 +286,8 @@ jobs:
       - name: Pylint-Odoo (OCA convention, non-blocking)
         if: steps.discover.outputs.modules != ''
         run: |
-          docker exec odoo20-pos-odoo20-1 pip install -q oca-odoo-pre-commit pylint-odoo 2>&1 | tail -n 5 || true
-          docker exec odoo20-pos-odoo20-1 python3 -m pylint --load-plugins=pylint_odoo \
+          docker compose exec -T odoo20 pip install -q oca-odoo-pre-commit pylint-odoo 2>&1 | tail -n 5 || true
+          docker compose exec -T odoo20 python3 -m pylint --load-plugins=pylint_odoo \
             --disable=all --enable=odoolint /mnt/extra-addons || true
 
       - name: Dump logs on failure
