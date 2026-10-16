@@ -277,12 +277,12 @@ jobs:
             --db_host=db -d ci_test \
             -r "$POSTGRES_USER" -w "$POSTGRES_PASSWORD" \
             -i "$MODS" --test-enable --stop-after-init \
-            --without-demo=all --log-level=test || \
+            --logfile=/dev/stdout --without-demo=all --log-level=test || \
           docker compose exec -T odoo20 odoo \
             --db_host=db -d ci_test \
             -r "$POSTGRES_USER" -w "$POSTGRES_PASSWORD" \
             -i "$MODS" --test-enable --stop-after-init \
-            --log-level=test
+            --logfile=/dev/stdout --log-level=test
 
       - name: Upgrade all (regression)
         if: steps.discover.outputs.modules != ''
@@ -290,7 +290,7 @@ jobs:
           docker compose exec -T odoo20 odoo \
             --db_host=db -d ci_test \
             -r "$POSTGRES_USER" -w "$POSTGRES_PASSWORD" \
-            -u all --stop-after-init --log-level=error
+            --logfile=/dev/stdout -u all --stop-after-init --log-level=error
 
       - name: Pylint-Odoo (OCA convention, non-blocking)
         if: steps.discover.outputs.modules != ''
@@ -303,6 +303,8 @@ jobs:
         if: failure() && steps.discover.outputs.modules != ''
         run: |
           docker compose logs --tail=400 odoo20 || true
+          echo "== etc/odoo-server.log (etc/odoo.conf mengarahkan log Odoo ke file ini) =="
+          tail -n 400 etc/odoo-server.log || true
 
       - name: Teardown
         if: always() && steps.discover.outputs.modules != ''
