@@ -1,0 +1,4 @@
+# Nilai admin_passwd lama di commit e7d3155 sudah diganti placeholder di etc/odoo.conf.
+# Fingerprint di bawah hanya menutup temuan historis; rotasi di instance yang
+# pernah memakai nilai itu tetap wajib dilakukan.
+e7d31550a2b14237e046ca8e38a054e1de915f10:etc/odoo.conf:generic-api-key:75

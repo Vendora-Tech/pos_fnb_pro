@@ -144,7 +144,7 @@ Deploy Odoo enterprise with docker-compose in a **separate directory**, without 
 
 - **Configuration:** edit [`etc/odoo.conf`](etc/odoo.conf)
 - **Server log:** `etc/odoo-server.log`
-- **Default admin password:** `admin_passwd = minhng.info` in [`etc/odoo.conf`](etc/odoo.conf) — override at setup time with `--password`
+- **Default admin password:** `admin_passwd = change_me_master_password` (placeholder, wajib diganti) in [`etc/odoo.conf`](etc/odoo.conf) — override at setup time with `--password`
 
 ## Container Management
 
