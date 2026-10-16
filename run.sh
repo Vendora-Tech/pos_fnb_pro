@@ -73,7 +73,7 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
 else
   # System configuration
   if grep -qF "fs.inotify.max_user_watches" /etc/sysctl.conf; then
-    echo $(grep -F "fs.inotify.max_user_watches" /etc/sysctl.conf)
+    echo "$(grep -F "fs.inotify.max_user_watches" /etc/sysctl.conf)"
   else
     echo "fs.inotify.max_user_watches = 524288" | sudo tee -a /etc/sysctl.conf
   fi

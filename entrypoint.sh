@@ -53,12 +53,12 @@ case "$1" in
         if [[ "$1" == "scaffold" ]] ; then
             exec odoo "$@"
         else
-            wait-for-psql.py ${DB_ARGS[@]} --timeout=30
+            wait-for-psql.py "${DB_ARGS[@]}" --timeout=30
             exec odoo "$@" "${DB_ARGS[@]}"
         fi
         ;;
     -*)
-        wait-for-psql.py ${DB_ARGS[@]} --timeout=30
+        wait-for-psql.py "${DB_ARGS[@]}" --timeout=30
         exec odoo "$@" "${DB_ARGS[@]}"
         ;;
     *)
