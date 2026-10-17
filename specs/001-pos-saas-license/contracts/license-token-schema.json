@@ -20,6 +20,10 @@
       "type": "string",
       "description": "Bound Odoo database UUID"
     },
+    "tenant_uuid": {
+      "type": "string",
+      "description": "Bound tenant UUID from pos_saas_core"
+    },
     "mods": {
       "type": "array",
       "items": { "type": "string" },

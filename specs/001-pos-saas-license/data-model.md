@@ -16,6 +16,8 @@ Model data utama yang menyimpan status lisensi aktif sistem per database tenant.
 | :--- | :--- | :--- | :--- |
 | `name` | Char | Required, Default="SaaS License" | Label representasi rekaman |
 | `license_id` | Char | Readonly, Index | ID lisensi unik dari SaaS Provider (misal: `LIC-2026-001`) |
+| `company_id` | Many2one | `res.company`, Required, Default=current | Entitas tenant pemilik lisensi (dari `pos_saas_core`) |
+| `tenant_uuid` | Char | Related='company_id.tenant_uuid', Readonly | UUID unik tenant yang terikat dengan lisensi |
 | `merchant_name` | Char | Readonly | Nama penyewa/merchant yang tertera pada lisensi |
 | `license_type` | Selection | Required, `[('subscription', 'Subscription'), ('perpetual', 'Perpetual (Beli Putus)')]` | Jenis model lisensi |
 | `database_uuid` | Char | Readonly | Database UUID Odoo yang terikat |

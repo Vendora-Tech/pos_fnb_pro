@@ -15,7 +15,7 @@ Membangun modul inti fondasi perizinan **`pos_saas_license`** di folder `addons/
 ## Technical Context
 
 **Language/Version**: Python 3.11+ / JavaScript (ECMAScript 2022+ OWL Framework Odoo 20)  
-**Primary Dependencies**: `odoo:20`, `point_of_sale`, Python `cryptography.hazmat.primitives.asymmetric.ed25519`  
+**Primary Dependencies**: `odoo:20`, `point_of_sale`, `pos_saas_core`, Python `cryptography.hazmat.primitives.asymmetric.ed25519`  
 **Storage**: PostgreSQL 18 (`pos_saas_license`, `pos_saas_license_log`)  
 **Testing**: Odoo Test Framework (`odoo.tests.common.TransactionCase`)  
 **Target Platform**: Linux Docker Container (`odoo:20` & `postgres:18`)  
