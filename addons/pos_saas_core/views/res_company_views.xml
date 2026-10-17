@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_company_form_inherit_pos_saas" model="ir.ui.view">
+        <field name="name">res.company.form.inherit.pos.saas</field>
+        <field name="model">res.company</field>
+        <field name="inherit_id" ref="base.view_company_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//notebook" position="inside">
+                <page string="Point of Sale" name="pos_saas">
+                    <group>
+                        <group string="Tenant Identity">
+                            <field name="tenant_uuid" readonly="1" class="font-monospace"/>
+                        </group>
+                        <group string="Default Receipt Texts">
+                            <field name="receipt_header" placeholder="Default header printed on customer receipts across outlets..."/>
+                            <field name="receipt_footer" placeholder="Default footer printed on customer receipts across outlets..."/>
+                        </group>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+</odoo>

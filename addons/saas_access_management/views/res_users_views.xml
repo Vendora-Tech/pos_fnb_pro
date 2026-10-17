@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_users_form_inherit_access_management" model="ir.ui.view">
+        <field name="name">res.users.form.inherit.access.management</field>
+        <field name="model">res.users</field>
+        <field name="inherit_id" ref="base.view_users_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//page[@name='access_rights']" position="after">
+                <page name="access_management" string="Access Management">
+                    <group>
+                        <p class="text-muted">
+                            Kelola dan tugaskan kebijakan <strong>Access Management</strong> untuk pengguna ini. Kebijakan aktif akan membatasi hak akses menu, model, field, button, dan fitur sistem secara otomatis.
+                        </p>
+                    </group>
+                    <field name="access_management_rule_ids">
+                        <list decoration-muted="not active">
+                            <field name="name" string="Policy Name"/>
+                            <field name="company_ids" widget="many2many_tags" string="Companies" optional="show"/>
+                            <field name="readonly" string="Read-Only User" optional="show"/>
+                            <field name="disable_debug_mode" string="Disable Developer Mode" optional="show"/>
+                            <field name="disable_login" string="Disable Login" optional="show"/>
+                            <field name="hide_export" string="Hide Export" optional="show"/>
+                            <field name="active" widget="boolean_toggle"/>
+                        </list>
+                    </field>
+                </page>
+            </xpath>
+        </field>
+    </record>
+</odoo>

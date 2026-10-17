@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SaasAccessPolicyContract",
+  "type": "object",
+  "properties": {
+    "policy_name": {
+      "type": "string",
+      "description": "Descriptive name of the access control role/policy"
+    },
+    "disable_export": {
+      "type": "boolean",
+      "description": "True to completely disable Excel and CSV data exports"
+    },
+    "hidden_menus": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of menu external IDs or names hidden from assigned users"
+    },
+    "model_restrictions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "model_name": {
+            "type": "string",
+            "description": "Target Odoo technical model name (e.g. pos.order)"
+          },
+          "hide_create": {
+            "type": "boolean",
+            "description": "Hide Create / New record button"
+          },
+          "hide_edit": {
+            "type": "boolean",
+            "description": "Hide Edit button"
+          },
+          "hide_delete": {
+            "type": "boolean",
+            "description": "Hide Delete record action"
+          },
+          "field_restrictions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "field_name": {
+                  "type": "string",
+                  "description": "Target technical field name (e.g. standard_price)"
+                },
+                "is_invisible": {
+                  "type": "boolean",
+                  "description": "Hide field completely from views"
+                },
+                "is_readonly": {
+                  "type": "boolean",
+                  "description": "Make field read-only"
+                }
+              },
+              "required": ["field_name", "is_invisible", "is_readonly"],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": ["model_name", "hide_create", "hide_edit", "hide_delete"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["policy_name", "disable_export", "model_restrictions"],
+  "additionalProperties": false
+}

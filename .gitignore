@@ -4,6 +4,7 @@
 
 # Local agent caches
 .claude/
+.pi/
 
 # Database storage
 postgresql/

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Extension for POS Config Form View -->
+    <record id="pos_config_view_form_inherit_saas_core" model="ir.ui.view">
+        <field name="name">pos.config.form.inherit.saas.core</field>
+        <field name="model">pos.config</field>
+        <field name="inherit_id" ref="point_of_sale.pos_config_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[@id='title']" position="after">
+                <group name="saas_outlet_info" string="Outlet Settings">
+                    <group>
+                        <field name="tenant_uuid" readonly="1" class="font-monospace"/>
+                        <field name="outlet_code" placeholder="e.g. OUTLET-01 / ALSUT-01"/>
+                    </group>
+                    <group>
+                        <field name="use_custom_receipt"/>
+                    </group>
+                </group>
+                <group name="saas_receipt_customization" invisible="not use_custom_receipt" string="Receipt Header &amp; Footer Override">
+                    <field name="receipt_header_override" placeholder="Custom header override for this outlet..."/>
+                    <field name="receipt_footer_override" placeholder="Custom footer override for this outlet..."/>
+                </group>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Extension for POS Config Tree / List View -->
+    <record id="pos_config_view_tree_inherit_saas_core" model="ir.ui.view">
+        <field name="name">pos.config.list.inherit.saas.core</field>
+        <field name="model">pos.config</field>
+        <field name="inherit_id" ref="point_of_sale.view_pos_config_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='name']" position="after">
+                <field name="outlet_code"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

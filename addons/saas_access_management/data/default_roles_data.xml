@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <!-- Preset Role: Kasir Standar (Restricted Cashier) -->
+    <record id="saas_access_rule_cashier" model="saas.access.rule">
+        <field name="name">Kasir Standar (Restricted Cashier)</field>
+        <field name="hide_export">True</field>
+        <field name="active">True</field>
+    </record>
+
+    <!-- Model Restriction for Product Template: Block Delete -->
+    <record id="saas_access_rule_model_product_template" model="saas.access.rule.model">
+        <field name="rule_id" ref="saas_access_rule_cashier"/>
+        <field name="model_id" ref="product.model_product_template"/>
+        <field name="hide_delete">True</field>
+        <field name="hide_create">False</field>
+        <field name="hide_edit">False</field>
+    </record>
+
+    <!-- Field Restriction: Hide standard_price (Cost Price) -->
+    <record id="saas_access_rule_field_standard_price" model="saas.access.rule.field">
+        <field name="rule_id" ref="saas_access_rule_cashier"/>
+        <field name="model_id" ref="product.model_product_template"/>
+        <field name="field_id" ref="product.field_product_template__standard_price"/>
+        <field name="is_invisible">True</field>
+        <field name="is_readonly">True</field>
+    </record>
+</odoo>
