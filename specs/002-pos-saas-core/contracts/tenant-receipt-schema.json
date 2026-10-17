@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TenantReceiptBrandingContract",
+  "type": "object",
+  "properties": {
+    "tenant_uuid": {
+      "type": "string",
+      "description": "Unique SaaS tenant identifier"
+    },
+    "outlet_code": {
+      "type": "string",
+      "description": "Identifier for the branch or POS terminal"
+    },
+    "merchant_name": {
+      "type": "string",
+      "description": "Legal business or display merchant name"
+    },
+    "tax_id_number": {
+      "type": ["string", "null"],
+      "description": "Tax identification number (NPWP / NIB)"
+    },
+    "has_receipt_logo": {
+      "type": "boolean",
+      "description": "True if receipt logo is uploaded"
+    },
+    "effective_header": {
+      "type": "string",
+      "description": "Resolved header text (branch override or company default)"
+    },
+    "effective_footer": {
+      "type": "string",
+      "description": "Resolved footer text (branch override or company default)"
+    }
+  },
+  "required": ["tenant_uuid", "outlet_code", "merchant_name", "effective_header", "effective_footer"],
+  "additionalProperties": false
+}

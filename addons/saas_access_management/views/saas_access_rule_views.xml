@@ -1,0 +1,188 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Tree / List View -->
+    <record id="view_saas_access_rule_tree" model="ir.ui.view">
+        <field name="name">saas.access.rule.list</field>
+        <field name="model">saas.access.rule</field>
+        <field name="arch" type="xml">
+            <list string="Access Management Policies">
+                <field name="name"/>
+                <field name="user_ids" widget="many2many_tags"/>
+                <field name="company_ids" widget="many2many_tags" groups="base.group_multi_company"/>
+                <field name="readonly"/>
+                <field name="disable_debug_mode"/>
+                <field name="disable_login"/>
+                <field name="hide_export"/>
+                <field name="active" widget="boolean_toggle"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Form View -->
+    <record id="view_saas_access_rule_form" model="ir.ui.view">
+        <field name="name">saas.access.rule.form</field>
+        <field name="model">saas.access.rule</field>
+        <field name="arch" type="xml">
+            <form string="Access Management Policy">
+                <sheet>
+                    <widget name="web_ribbon" title="Archived" bg_color="text-bg-danger" invisible="active"/>
+                    <div class="oe_title">
+                        <label for="name" string="Policy Name"/>
+                        <h1>
+                            <field name="name" placeholder="e.g. Kasir Toko (Restricted Store Staff)"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group string="Assignments">
+                            <field name="user_ids" widget="many2many_tags" options="{'no_create': True}"/>
+                            <field name="company_ids" widget="many2many_tags" options="{'no_create': True}" groups="base.group_multi_company"/>
+                            <field name="active" widget="boolean_toggle"/>
+                            <field name="apply_hierarchy"/>
+                        </group>
+                        <group string="Global System Restrictions">
+                            <field name="readonly"/>
+                            <field name="disable_debug_mode"/>
+                            <field name="disable_login"/>
+                            <field name="hide_duplicate"/>
+                            <field name="hide_archive"/>
+                            <field name="hide_export"/>
+                            <field name="hide_import"/>
+                            <field name="hide_filters"/>
+                            <field name="hide_group_by"/>
+                            <field name="hide_search_panel"/>
+                            <field name="hide_chatter"/>
+                            <field name="hide_spreadsheets"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <!-- Tab 1: Menu Access -->
+                        <page string="Hide Menus" name="menu_access">
+                            <field name="hide_menu_ids" widget="many2many" nolabel="1" options="{'no_create': True}">
+                                <list string="Hidden Navigation Menus">
+                                    <field name="complete_name" string="Menu / Submenu Path"/>
+                                </list>
+                            </field>
+                        </page>
+
+                        <!-- Tab 2: Model Access -->
+                        <page string="Model Rights" name="model_access">
+                            <field name="model_access_ids" nolabel="1">
+                                <list editable="bottom" string="Model Access Rights">
+                                    <field name="model_id" options="{'no_create': True}"/>
+                                    <field name="hide_create"/>
+                                    <field name="hide_edit"/>
+                                    <field name="hide_delete"/>
+                                    <field name="hide_archive"/>
+                                    <field name="hide_duplicate"/>
+                                    <field name="hide_export"/>
+                                    <field name="hide_import"/>
+                                    <field name="hide_report"/>
+                                    <field name="hide_action"/>
+                                    <field name="hide_search_panel"/>
+                                    <field name="hide_filters"/>
+                                    <field name="hide_group_by"/>
+                                </list>
+                            </field>
+                        </page>
+
+                        <!-- Tab 3: Field Access -->
+                        <page string="Field Rights" name="field_access">
+                            <field name="field_access_ids" nolabel="1">
+                                <list editable="bottom" string="Field Access Rights">
+                                    <field name="model_id" options="{'no_create': True}"/>
+                                    <field name="field_id" domain="[('model_id', '=', model_id)]" options="{'no_create': True}"/>
+                                    <field name="is_invisible"/>
+                                    <field name="is_readonly"/>
+                                    <field name="is_required"/>
+                                    <field name="remove_external_link"/>
+                                    <field name="no_create"/>
+                                    <field name="no_create_edit"/>
+                                    <field name="hide_export"/>
+                                    <field name="conditional_domain" placeholder="[('state', '=', 'done')]"/>
+                                </list>
+                            </field>
+                        </page>
+
+                        <!-- Tab 4: Button & Tab Access -->
+                        <page string="Button / Tab Access" name="button_tab_access">
+                            <field name="button_tab_access_ids" nolabel="1">
+                                <list editable="bottom" string="Button and Tab Access">
+                                    <field name="model_id" options="{'no_create': True}"/>
+                                    <field name="button_tab_type"/>
+                                    <field name="name" placeholder="e.g. action_post, order_lines"/>
+                                    <field name="hide"/>
+                                    <field name="conditional_domain" placeholder="[('state', '=', 'draft')]"/>
+                                </list>
+                            </field>
+                        </page>
+
+                        <!-- Tab 5: Domain Access -->
+                        <page string="Domain Rights" name="domain_access">
+                            <field name="domain_access_ids" nolabel="1">
+                                <list editable="bottom" string="Conditional Domain Access">
+                                    <field name="model_id" options="{'no_create': True}"/>
+                                    <field name="domain" placeholder="[('state', '=', 'draft')]"/>
+                                    <field name="restrict_read"/>
+                                    <field name="restrict_write"/>
+                                    <field name="restrict_create"/>
+                                    <field name="restrict_delete"/>
+                                    <field name="is_soft_restriction"/>
+                                    <field name="warning_message"/>
+                                </list>
+                            </field>
+                        </page>
+
+                        <!-- Tab 6: Filter & Group Access -->
+                        <page string="Filters &amp; Groups" name="filter_group_access">
+                            <field name="hide_filters_groups_ids" nolabel="1">
+                                <list editable="bottom" string="Filter &amp; Group By Restrictions">
+                                    <field name="model_id" options="{'no_create': True}"/>
+                                    <field name="filter_type"/>
+                                    <field name="name" placeholder="Filter Name / String"/>
+                                    <field name="hide"/>
+                                </list>
+                            </field>
+                        </page>
+
+                        <!-- Tab 7: Report & Print Access -->
+                        <page string="Reports &amp; Print" name="report_access">
+                            <field name="report_access_ids" nolabel="1">
+                                <list editable="bottom" string="Report &amp; Print Restrictions">
+                                    <field name="model_id" options="{'no_create': True}"/>
+                                    <field name="report_id" domain="[('model', '=', model_name)]" options="{'no_create': True}"/>
+                                    <field name="hide"/>
+                                </list>
+                            </field>
+                        </page>
+
+                        <!-- Tab 8: Chatter Access -->
+                        <page string="Chatter Access" name="chatter_access">
+                            <field name="chatter_access_ids" nolabel="1">
+                                <list editable="bottom" string="Model Chatter Rights">
+                                    <field name="model_id" options="{'no_create': True}"/>
+                                    <field name="hide_chatter"/>
+                                    <field name="hide_send_message"/>
+                                    <field name="hide_log_note"/>
+                                    <field name="hide_activity"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Search View -->
+    <record id="view_saas_access_rule_search" model="ir.ui.view">
+        <field name="name">saas.access.rule.search</field>
+        <field name="model">saas.access.rule</field>
+        <field name="arch" type="xml">
+            <search string="Search Access Policies">
+                <field name="name"/>
+                <field name="user_ids"/>
+                <filter string="Archived" name="inactive" domain="[('active', '=', False)]"/>
+            </search>
+        </field>
+    </record>
+</odoo>

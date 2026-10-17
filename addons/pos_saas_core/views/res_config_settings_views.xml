@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="res_config_settings_view_form_inherit_saas_core" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.inherit.saas.core</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="point_of_sale.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//block[@id='pos_bills_and_receipts_section']" position="before">
+                <block title="Store Identity &amp; Receipt Branding" id="pos_saas_store_identity_section">
+                    <setting id="saas_tenant_identity" string="Tenant Identity" help="Unique identifier of this merchant store">
+                        <div class="content-group mt16">
+                            <div class="row">
+                                <label for="saas_tenant_uuid" string="UUID" class="col-lg-3 o_light_label"/>
+                                <field name="saas_tenant_uuid" readonly="1" class="font-monospace fw-bold" placeholder="Unassigned"/>
+                            </div>
+                        </div>
+                    </setting>
+                    <setting id="saas_default_receipt_texts" string="Default Store Receipt Texts" help="Global fallback header and footer text if not overridden per-outlet">
+                        <div class="content-group mt16">
+                            <div class="row">
+                                <label for="saas_default_receipt_header" string="Global Header" class="col-lg-3 o_light_label"/>
+                                <field name="saas_default_receipt_header" placeholder="Welcome to our store!"/>
+                            </div>
+                            <div class="row mt16">
+                                <label for="saas_default_receipt_footer" string="Global Footer" class="col-lg-3 o_light_label"/>
+                                <field name="saas_default_receipt_footer" placeholder="Thank you for visiting!"/>
+                            </div>
+                        </div>
+                    </setting>
+                </block>
+            </xpath>
+        </field>
+    </record>
+</odoo>

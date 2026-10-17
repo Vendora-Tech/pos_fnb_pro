@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="action_saas_access_rule" model="ir.actions.act_window">
+        <field name="name">Access Management</field>
+        <field name="res_model">saas.access.rule</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_saas_access_rule_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create your first Access Management Policy
+            </p>
+            <p>
+                All-in-one access rights controller: manage Menus, Models, Fields, Buttons, Tabs, Record Domains, and Chatter for any user.
+            </p>
+        </field>
+    </record>
+
+    <!-- Top-Level App Menu in Main Navigation Bar / App Switcher -->
+    <menuitem
+        id="menu_saas_access_root"
+        name="Access Management"
+        web_icon="saas_access_management,static/description/icon.png"
+        groups="base.group_system"
+        sequence="70"
+    />
+
+    <!-- Submenu Section -->
+    <menuitem
+        id="menu_saas_access_sub_root"
+        name="Access Management"
+        parent="menu_saas_access_root"
+        sequence="1"
+    />
+
+    <menuitem
+        id="menu_saas_access_main"
+        name="Access Management"
+        parent="menu_saas_access_sub_root"
+        action="action_saas_access_rule"
+        sequence="1"
+    />
+
+    <!-- Menu Shortcut under Settings -> Users & Companies -->
+    <menuitem
+        id="menu_saas_access_rule_settings"
+        name="Access Management"
+        parent="base.menu_users"
+        action="action_saas_access_rule"
+        groups="base.group_system"
+        sequence="50"
+    />
+
+    <!-- Menu Shortcut under Point of Sale -> Configuration -->
+    <menuitem
+        id="menu_pos_saas_access_rule_pos"
+        name="Access Management"
+        parent="point_of_sale.menu_point_config_product"
+        action="action_saas_access_rule"
+        groups="base.group_system"
+        sequence="100"
+    />
+</odoo>

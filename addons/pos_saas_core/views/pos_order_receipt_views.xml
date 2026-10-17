@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- Inject NPWP / Tax ID into POS Order Receipt Header (Hidden temporarily) -->
+        <template id="pos_order_receipt_header_saas" inherit_id="point_of_sale.pos_order_receipt_header">
+            <xpath expr="//div[@name='header']" position="inside">
+                <!-- t-if set to False to hide NPWP until re-enabled -->
+                <div t-if="False and company.get('tax_id_number')" class="w-100 text-center fw-bold mb-1" name="tenant_tax_id">
+                    <span>NPWP: </span><t t-out="company['tax_id_number']"/>
+                </div>
+            </xpath>
+        </template>
+    </data>
+</odoo>
