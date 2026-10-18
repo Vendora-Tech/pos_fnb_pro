@@ -5,11 +5,17 @@
     "author": "Vendora-Tech",
     "license": "LGPL-3",
     "category": "Point of Sale",
-    "depends": ["point_of_sale"],
+    "depends": [
+        "point_of_sale",
+        "pos_saas_core",
+    ],
     "external_dependencies": {
         "python": ["cryptography"],
     },
-    "data": [],
+    "data": [
+        "security/ir.access.csv",
+        "data/pos_saas_license_data.xml",
+    ],
     "assets": {},
     "installable": True,
     "application": False,
