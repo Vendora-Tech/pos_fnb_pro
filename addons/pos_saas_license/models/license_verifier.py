@@ -89,6 +89,8 @@ class LicensePayload:
     tenant_uuid: str | None = None
     mods: list = field(default_factory=list)
     until: str | None = None
+    # `kid` diambil dari header token, dipakai model untuk kolom cache `key_id`.
+    kid: str | None = None
 
     @property
     def is_perpetual(self):
@@ -207,7 +209,7 @@ def _require_date(data, name):
     return value
 
 
-def _validate_payload(data):
+def _validate_payload(data, kid=None):
     """Validasi payload tanpa `jsonschema`, mengikuti kontrak JSON schema."""
     unknown = sorted(set(data) - set(PAYLOAD_FIELDS))
     if unknown:
@@ -268,6 +270,7 @@ def _validate_payload(data):
         tenant_uuid=tenant_uuid,
         mods=list(mods),
         until=until,
+        kid=kid,
     )
 
 
@@ -299,7 +302,7 @@ def decode_and_verify(token, public_keys=None):
     _verify_signature(signing_input, signature, keys[kid])
 
     payload = _json_object(_b64url_decode(payload_b64), "token payload")
-    return _validate_payload(payload)
+    return _validate_payload(payload, kid=kid)
 
 
 def _coerce_date(value):
