@@ -93,9 +93,21 @@ class TestLicenseCrypto(LicenseTestMixin, TransactionCase):
         self.assertEqual(self.payload_field(payload, "typ"), "perpetual")
         self.assertFalse(self.payload_field(payload, "until"))
 
+    def test_optional_tenant_uuid_accepted(self):
+        """`tenant_uuid` dari pos_saas_core boleh ada dan tidak diwajibkan."""
+        with_tenant = decode_and_verify(self.make_token(tenant_uuid="tenant-test-uuid"))
+        self.assertEqual(
+            self.payload_field(with_tenant, "tenant_uuid"), "tenant-test-uuid"
+        )
+        decode_and_verify(self.make_token())
+
+    def test_missing_grace_defaults_to_seven(self):
+        """`grace` tidak wajib; bila hilang, nilai default skema adalah 7 hari."""
+        payload = decode_and_verify(self.make_token(grace=None))
+        self.assertEqual(self.payload_field(payload, "grace"), 7)
+
     def test_optional_fields_accepted(self):
-        """`grace` dan `mods` tidak diwajibkan skema."""
-        decode_and_verify(self.make_token(grace=None))
+        """`mods` tidak diwajibkan skema."""
         payload = decode_and_verify(self.make_token(mods=["pos_base", "pos_id_qris"]))
         self.assertEqual(
             self.payload_field(payload, "mods"), ["pos_base", "pos_id_qris"]
@@ -275,7 +287,7 @@ class TestLicenseCrypto(LicenseTestMixin, TransactionCase):
         """Subscription tanpa `until` wajib ditolak."""
         token = self.make_token(until=None)
         self.assert_token_rejected(
-            token, "Sold-by-subscription tokens must carry an until date"
+            token, "Subscription tokens must carry an until date"
         )
 
     def test_perpetual_with_until_rejected(self):
