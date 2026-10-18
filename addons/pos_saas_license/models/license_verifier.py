@@ -20,7 +20,7 @@ import binascii
 import json
 import re
 from dataclasses import dataclass, field
-from datetime import date
+from datetime import date, datetime
 
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
@@ -41,6 +41,8 @@ CODE_INVALID_SIGNATURE = "invalid_signature"
 CODE_INVALID_PAYLOAD = "invalid_payload"
 
 LICENSE_TYPES = ("subscription", "perpetual")
+
+LICENSE_STATES = ("active", "warning", "grace", "expired", "invalid")
 
 PAYLOAD_FIELDS = (
     "lid",
@@ -298,3 +300,52 @@ def decode_and_verify(token, public_keys=None):
 
     payload = _json_object(_b64url_decode(payload_b64), "token payload")
     return _validate_payload(payload)
+
+
+def _coerce_date(value):
+    """Terima `datetime.date`, `datetime.datetime`, atau string ISO."""
+    if isinstance(value, datetime):
+        return value.date()
+    if isinstance(value, date):
+        return value
+    return date.fromisoformat(value)
+
+
+def _days_phrase(count):
+    """Jumlah hari untuk pesan alasan: `1 day` atau `2 days`."""
+    unit = "day" if abs(count) == 1 else "days"
+    return f"{abs(count)} {unit}"
+
+
+def compute_state(payload, today, db_uuid, warning_days=14):
+    """Hitung `(state, days_left, reason)` dari payload yang sudah terverifikasi.
+
+    `today` adalah tanggal lokal zona waktu company (fallback `Asia/Jakarta`),
+    dan `db_uuid` adalah `database.uuid` tenant. Aturan mengikuti tabel
+    "Aturan Perhitungan Status" di `specs/001-pos-saas-license/data-model.md`:
+    `days_left > warning_days` active, `0 <= days_left <= warning_days` warning,
+    `-grace <= days_left < 0` grace, dan di bawahnya expired. `days_left`
+    bernilai `None` bila status tidak dihitung dari tanggal jatuh tempo.
+    """
+    today = _coerce_date(today)
+    if payload.db_uuid != db_uuid:
+        return "invalid", None, "database uuid does not match this database"
+    if _coerce_date(payload.from_) > today:
+        return "invalid", None, "license is not effective yet"
+    if payload.is_perpetual:
+        return "active", None, "perpetual license never expires"
+    if not payload.until:
+        return "invalid", None, "subscription without an expiration date"
+
+    days_left = (_coerce_date(payload.until) - today).days
+    if days_left > warning_days:
+        return "active", days_left, f"expires in {_days_phrase(days_left)}"
+    if days_left >= 0:
+        return "warning", days_left, f"expires in {_days_phrase(days_left)}"
+    if days_left >= -payload.grace:
+        return (
+            "grace",
+            days_left,
+            f"grace period, {_days_phrase(days_left)} past expiry",
+        )
+    return "expired", days_left, f"expired {_days_phrase(days_left)} ago"
