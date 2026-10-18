@@ -82,7 +82,7 @@ addons/pos_saas_license/
 │   ├── ir_cron_data.xml          # Daily 00:05 UTC expiration check & optional heartbeat
 │   └── pos_saas_license_data.xml # Initial default singleton record
 ├── security/
-│   ├── ir.model.access.csv       # ACL permissions for managers and cashiers
+│   ├── ir.access.csv       # ACL permissions for managers and cashiers
 │   └── pos_saas_license_security.xml # Security group definitions
 ├── static/
 │   └── src/
