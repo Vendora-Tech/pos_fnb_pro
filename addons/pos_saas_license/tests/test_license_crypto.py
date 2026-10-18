@@ -101,11 +101,6 @@ class TestLicenseCrypto(LicenseTestMixin, TransactionCase):
         )
         decode_and_verify(self.make_token())
 
-    def test_missing_grace_defaults_to_seven(self):
-        """`grace` tidak wajib; bila hilang, nilai default skema adalah 7 hari."""
-        payload = decode_and_verify(self.make_token(grace=None))
-        self.assertEqual(self.payload_field(payload, "grace"), 7)
-
     def test_optional_fields_accepted(self):
         """`mods` tidak diwajibkan skema."""
         payload = decode_and_verify(self.make_token(mods=["pos_base", "pos_id_qris"]))
@@ -237,7 +232,7 @@ class TestLicenseCrypto(LicenseTestMixin, TransactionCase):
 
     def test_missing_required_field_rejected(self):
         """Field wajib yang hilang wajib ditolak."""
-        for field in ("lid", "mch", "typ", "db_uuid", "max_reg", "from"):
+        for field in ("lid", "mch", "typ", "db_uuid", "max_reg", "from", "grace"):
             with self.subTest(field=field):
                 token = self.make_token(**{field: None})
                 self.assert_token_rejected(
