@@ -5,11 +5,15 @@ Kolom turunan token di sini hanya cache. Setiap keputusan izin memanggil
 (FR-013). Karena itu manipulasi langsung di database tidak mengubah keputusan.
 """
 
+import json
 import logging
-from datetime import UTC, datetime
+import urllib.error
+import urllib.request
+from datetime import UTC, datetime, timedelta
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from odoo import api, fields, models
+from odoo import _, api, fields, models
+from odoo.exceptions import UserError
 
 from .license_verifier import (
     LicenseError,
@@ -271,3 +275,128 @@ class PosSaasLicense(models.Model):
             )
         self._refresh_cache()
         return result
+
+    # -------------------------------------------------------- POS gatekeeper
+
+    def _check_clock_rollback(self):
+        """Deteksi manipulasi jam server.
+
+        Mundur hingga 1 jam ditoleransi (misal sinkronisasi NTP).
+        Mundur lebih dari 1 jam memblokir akses dan mencatat event `clock_tamper`.
+        """
+        self.ensure_one()
+        if not self.last_seen_timestamp:
+            return True
+
+        now_naive = datetime.now(UTC).replace(tzinfo=None)
+        last_seen = self.last_seen_timestamp
+        if hasattr(last_seen, "tzinfo") and last_seen.tzinfo is not None:
+            last_seen = last_seen.astimezone(UTC).replace(tzinfo=None)
+
+        if now_naive < (last_seen - timedelta(hours=1)):
+            msg = _(
+                "Clock rollback detected: server time %s is more than 1 hour behind last recorded time %s."
+            ) % (now_naive.isoformat(), last_seen.isoformat())
+            _logger.error(msg)
+            self._log_event("clock_tamper", msg)
+            return False
+
+        return True
+
+    def check_pos_access(self, raise_error=True):
+        """Gerbang validasi pembukaan dan kelanjutan sesi kasir.
+
+        Mengevaluasi ulang lisensi secara offline. Memblokir akses bila lisensi
+        `expired`, `invalid`, atau terjadi pemunduran jam (clock rollback).
+        Memperbarui `last_seen_timestamp` saat akses berhasil diizinkan.
+        """
+        record = self._get_current() if not self else self[0]
+
+        # 1. Periksa pemunduran waktu server (clock rollback)
+        if not record._check_clock_rollback():
+            msg = _("System clock rollback detected. POS access is temporarily blocked for security.")
+            if raise_error:
+                raise UserError(msg)
+            return False
+
+        # 2. Evaluasi ulang token lisensi saat ini
+        result = record._evaluate()
+        state = result["state"]
+        reason = result["reason"]
+
+        if state in ("expired", "invalid"):
+            msg = _("POS access blocked: license is %s (%s).") % (state, reason)
+            record._log_event("blocked", msg)
+            if raise_error:
+                raise UserError(msg)
+            return False
+
+        # 3. Akses diizinkan (active, warning, grace) -> perbarui last_seen_timestamp
+        now_naive = datetime.now(UTC).replace(tzinfo=None)
+        if not record.last_seen_timestamp or now_naive > record.last_seen_timestamp:
+            record.sudo().write({"last_seen_timestamp": now_naive})
+
+        return True
+
+    # -------------------------------------------------------- Cron & Heartbeat
+
+    @api.model
+    def _cron_daily_check(self):
+        """Pemeriksaan status berkala harian (ir.cron).
+
+        Menyegarkan cache status lisensi untuk seluruh company, mencatat
+        transisi status ke audit log, memperbarui `last_seen_timestamp`,
+        dan secara opsional mengirimkan heartbeat ke licensing server.
+        """
+        licenses = self.search([])
+        for license_rec in licenses:
+            license_rec._refresh_cache()
+
+            # Perbarui last_seen_timestamp jika server berjalan maju
+            now_naive = datetime.now(UTC).replace(tzinfo=None)
+            if not license_rec.last_seen_timestamp or now_naive > license_rec.last_seen_timestamp:
+                license_rec.sudo().write({"last_seen_timestamp": now_naive})
+
+            # Heartbeat opsional (hanya model subscription)
+            if license_rec.license_type == "subscription":
+                license_rec._send_heartbeat()
+
+    def _send_heartbeat(self):
+        """Mengirim ping status lisensi ke central licensing server secara non-blocking."""
+        self.ensure_one()
+        server_url = (
+            self.env["ir.config_parameter"].sudo().get_param("saas.license.server_url") or ""
+        ).strip()
+        if not server_url:
+            return
+
+        payload_data = {
+            "license_id": self.license_id,
+            "database_uuid": self.database_uuid,
+            "tenant_uuid": self.tenant_uuid,
+            "state": self.state,
+            "days_remaining": self.days_remaining,
+            "timestamp": datetime.now(UTC).isoformat(),
+        }
+
+        try:
+            req = urllib.request.Request(
+                server_url,
+                data=json.dumps(payload_data).encode("utf-8"),
+                headers={"Content-Type": "application/json", "User-Agent": "Odoo-POS-SaaS-Client/20.0"},
+                method="POST",
+            )
+            with urllib.request.urlopen(req, timeout=5) as response:
+                _logger.info(
+                    "SaaS License heartbeat sent successfully to %s: HTTP %s",
+                    server_url,
+                    getattr(response, "status", 200),
+                )
+        except Exception as exc:  # noqa: BLE001
+            _logger.warning(
+                "SaaS License optional heartbeat to %s failed (non-blocking): %s",
+                server_url,
+                exc,
+            )
+
+

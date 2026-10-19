@@ -332,11 +332,15 @@ def compute_state(payload, today, db_uuid, warning_days=14):
     """
     today = _coerce_date(today)
     if payload.db_uuid != db_uuid:
-        return "invalid", None, "database uuid does not match this database"
+        return (
+            "invalid",
+            None,
+            f"database uuid does not match this database (current: {db_uuid}, token: {payload.db_uuid})",
+        )
     if _coerce_date(payload.from_) > today:
         return "invalid", None, "license is not effective yet"
     if payload.is_perpetual:
-        return "active", None, "perpetual license never expires"
+        return "active", None, "Lifetime (perpetual license never expires)"
     if not payload.until:
         return "invalid", None, "subscription without an expiration date"
 
