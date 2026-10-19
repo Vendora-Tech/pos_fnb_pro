@@ -1,0 +1,18 @@
+.pos-saas-license-banner {
+    z-index: 1050;
+    font-size: 0.875rem;
+    letter-spacing: 0.02rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+    border-radius: 0;
+    border: none;
+
+    &.alert-warning {
+        background-color: #ffc107;
+        color: #212529;
+    }
+
+    &.alert-danger {
+        background-color: #dc3545;
+        color: #ffffff;
+    }
+}
