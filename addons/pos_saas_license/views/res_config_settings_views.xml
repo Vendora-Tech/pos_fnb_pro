@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="res_config_settings_view_form_inherit_saas_license" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.inherit.saas.license</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="point_of_sale.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//app[@name='point_of_sale']//div[@invisible=&quot;not pos_config_id&quot;]" position="inside">
+                <block title="SaaS License" id="pos_saas_license_section">
+                    <!-- Status Lisensi & Badge Indikator -->
+                    <setting id="saas_license_status_setting" string="License Status" help="Current subscription state, expiration dates, and register usage quota">
+                        <div class="content-group mt16">
+                            <!-- Badge Status Warna -->
+                            <div class="mb16">
+                                <span class="badge rounded-pill text-bg-success px-3 py-2 fs-6"
+                                      invisible="saas_license_state != 'active'">Active</span>
+                                <span class="badge rounded-pill text-bg-warning px-3 py-2 fs-6"
+                                      invisible="saas_license_state != 'warning'">Expiring Soon</span>
+                                <span class="badge rounded-pill text-bg-danger px-3 py-2 fs-6"
+                                      invisible="saas_license_state != 'grace'">Grace Period</span>
+                                <span class="badge rounded-pill text-bg-danger px-3 py-2 fs-6"
+                                      invisible="saas_license_state != 'expired'">Expired</span>
+                                <span class="badge rounded-pill text-bg-secondary px-3 py-2 fs-6"
+                                      invisible="saas_license_state != 'invalid'">Invalid / Not Activated</span>
+                            </div>
+
+                            <!-- Detail Lisensi Read-Only -->
+                            <div class="row">
+                                <label for="saas_license_id" string="License ID" class="col-lg-3 o_light_label"/>
+                                <field name="saas_license_id" readonly="1" class="font-monospace fw-bold"/>
+                            </div>
+                            <div class="row mt8">
+                                <label for="saas_merchant_name" string="Merchant" class="col-lg-3 o_light_label"/>
+                                <field name="saas_merchant_name" readonly="1"/>
+                            </div>
+                            <div class="row mt8">
+                                <label for="saas_license_type" string="Model" class="col-lg-3 o_light_label"/>
+                                <field name="saas_license_type" readonly="1"/>
+                            </div>
+                            <div class="row mt8" invisible="saas_license_type == 'perpetual'">
+                                <label for="saas_valid_until" string="Expires On" class="col-lg-3 o_light_label"/>
+                                <field name="saas_valid_until" readonly="1"/>
+                            </div>
+                            <div class="row mt8" invisible="saas_license_type != 'perpetual'">
+                                <label for="saas_valid_until" string="Expires On" class="col-lg-3 o_light_label"/>
+                                <div class="col-lg-9 d-flex align-items-center">
+                                    <span class="badge text-bg-info text-dark">Lifetime</span>
+                                </div>
+                            </div>
+                            <div class="row mt8" invisible="saas_license_type == 'perpetual'">
+                                <label for="saas_days_remaining" string="Days Left" class="col-lg-3 o_light_label"/>
+                                <field name="saas_days_remaining" readonly="1"/>
+                            </div>
+                            <div class="row mt8">
+                                <label for="saas_active_registers" string="Active Registers" class="col-lg-3 o_light_label"/>
+                                <div class="col-lg-9 d-flex align-items-center">
+                                    <field name="saas_active_registers" readonly="1" class="fw-bold me-1"/>
+                                    <span>/</span>
+                                    <field name="saas_max_registers" readonly="1" class="fw-bold ms-1"/>
+                                    <span class="text-muted ms-2">(active sessions / quota)</span>
+                                </div>
+                            </div>
+                            <div class="row mt8">
+                                <label for="saas_database_uuid" string="Database UUID" class="col-lg-3 o_light_label"/>
+                                <div class="col-lg-9 d-flex align-items-center">
+                                    <field name="saas_database_uuid" readonly="1" class="font-monospace text-muted me-2"/>
+                                    <span class="text-muted small">(copy this when requesting a license token)</span>
+                                </div>
+                            </div>
+                            <div class="row mt8" invisible="not saas_state_message">
+                                <label for="saas_state_message" string="Notes" class="col-lg-3 o_light_label"/>
+                                <field name="saas_state_message" readonly="1" class="text-info"/>
+                            </div>
+                        </div>
+                    </setting>
+
+                    <!-- Input Aktivasi Token Baru -->
+                    <setting id="saas_license_token_activation" string="Activate / Renew Token" help="Paste a signed SaaS token from the merchant portal to renew or upgrade your license">
+                        <div class="content-group mt16">
+                            <field name="saas_license_token" placeholder="Paste your Ed25519 license token here..." class="font-monospace w-100"/>
+                            <div class="mt8">
+                                <button name="action_saas_license_verify" type="object"
+                                        string="Verify &amp; Activate License"
+                                        class="btn btn-primary"
+                                        icon="fa-key"/>
+                            </div>
+                        </div>
+                    </setting>
+                </block>
+            </xpath>
+        </field>
+    </record>
+</odoo>

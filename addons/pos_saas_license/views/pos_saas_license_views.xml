@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ================================================================= -->
+    <!-- 1. pos.saas.license Views (Form Read-Only Dashboard)              -->
+    <!-- ================================================================= -->
+    <record id="pos_saas_license_view_form" model="ir.ui.view">
+        <field name="name">pos.saas.license.form</field>
+        <field name="model">pos.saas.license</field>
+        <field name="arch" type="xml">
+            <form string="SaaS License" create="false" delete="false">
+                <header>
+                    <button name="action_install_token" string="Refresh / Re-verify" type="object" class="btn btn-secondary"/>
+                    <field name="state" widget="statusbar" statusbar_visible="active,warning,grace,expired,invalid"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name" class="oe_edit_only"/>
+                        <h1>
+                            <field name="name" readonly="1"/>
+                        </h1>
+                        <h3>
+                            <field name="merchant_name" readonly="1" placeholder="Merchant Name"/>
+                        </h3>
+                    </div>
+                    <group>
+                        <group string="License Specification">
+                            <field name="license_id" readonly="1" class="font-monospace fw-bold"/>
+                            <field name="license_type" readonly="1"/>
+                            <field name="company_id" readonly="1"/>
+                            <field name="tenant_uuid" readonly="1" class="font-monospace"/>
+                            <field name="database_uuid" readonly="1" class="font-monospace"/>
+                            <field name="key_id" readonly="1"/>
+                        </group>
+                        <group string="Validity &amp; Quotas">
+                            <field name="valid_from" readonly="1"/>
+                            <field name="valid_until" readonly="1" invisible="license_type == 'perpetual'"/>
+                            <field name="grace_period_days" readonly="1"/>
+                            <field name="days_remaining" readonly="1" invisible="license_type == 'perpetual'"/>
+                            <field name="max_pos_registers" readonly="1"/>
+                            <field name="allowed_modules" readonly="1"/>
+                            <field name="last_verified_at" readonly="1"/>
+                            <field name="last_seen_timestamp" readonly="1"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Status &amp; Diagnostics" name="diagnostics">
+                            <group>
+                                <field name="state_message" readonly="1" string="Diagnosis Message"/>
+                            </group>
+                            <group string="Installed Token (Raw JWS)">
+                                <field name="raw_token" readonly="1" class="font-monospace"/>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- ================================================================= -->
+    <!-- 2. pos.saas.license.log Views (List & Search)                    -->
+    <!-- ================================================================= -->
+    <record id="pos_saas_license_log_view_list" model="ir.ui.view">
+        <field name="name">pos.saas.license.log.list</field>
+        <field name="model">pos.saas.license.log</field>
+        <field name="arch" type="xml">
+            <list string="SaaS License Audit Logs" create="false" edit="false" delete="false"
+                  decoration-danger="event_type in ('blocked', 'clock_tamper', 'invalid_token', 'expired')"
+                  decoration-warning="event_type in ('warning', 'grace_entered')"
+                  decoration-success="event_type in ('installed', 'verified')">
+                <field name="event_date"/>
+                <field name="license_id"/>
+                <field name="event_type" widget="badge"
+                       decoration-danger="event_type in ('blocked', 'clock_tamper', 'invalid_token', 'expired')"
+                       decoration-warning="event_type in ('warning', 'grace_entered')"
+                       decoration-success="event_type in ('installed', 'verified')"/>
+                <field name="user_id"/>
+                <field name="details"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="pos_saas_license_log_view_search" model="ir.ui.view">
+        <field name="name">pos.saas.license.log.search</field>
+        <field name="model">pos.saas.license.log</field>
+        <field name="arch" type="xml">
+            <search string="Search License Logs">
+                <field name="license_id"/>
+                <field name="event_type"/>
+                <field name="user_id"/>
+                <field name="details"/>
+                <separator/>
+                <filter string="Security Incidents" name="incidents"
+                        domain="[('event_type', 'in', ('blocked', 'clock_tamper', 'invalid_token'))]"/>
+                <filter string="Token Installations" name="installed"
+                        domain="[('event_type', '=', 'installed')]"/>
+                <filter string="Warnings &amp; Grace" name="warnings"
+                        domain="[('event_type', 'in', ('warning', 'grace_entered', 'expired'))]"/>
+                <group expand="0" string="Group By">
+                    <filter string="Event Type" name="group_by_event" context="{'group_by': 'event_type'}"/>
+                    <filter string="License" name="group_by_license" context="{'group_by': 'license_id'}"/>
+                    <filter string="Date" name="group_by_date" context="{'group_by': 'event_date:day'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- ================================================================= -->
+    <!-- 3. Window Actions & Menus                                         -->
+    <!-- ================================================================= -->
+    <!-- Action untuk Audit Log -->
+    <record id="action_pos_saas_license_log" model="ir.actions.act_window">
+        <field name="name">SaaS License Logs</field>
+        <field name="res_model">pos.saas.license.log</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="pos_saas_license_log_view_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No license audit events recorded yet.
+            </p>
+            <p>
+                All license verifications, warnings, session blockades, and tampering detections will appear here.
+            </p>
+        </field>
+    </record>
+
+    <!-- Menu Item di Bawah Point of Sale > Configuration khusus Manager -->
+    <menuitem id="menu_pos_saas_license_log"
+              name="SaaS License Log"
+              parent="point_of_sale.menu_point_config_product"
+              action="action_pos_saas_license_log"
+              groups="point_of_sale.group_pos_manager"
+              sequence="99"/>
+</odoo>
