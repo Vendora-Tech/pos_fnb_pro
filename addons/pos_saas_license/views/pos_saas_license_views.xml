@@ -96,11 +96,10 @@
                         domain="[('event_type', '=', 'installed')]"/>
                 <filter string="Warnings &amp; Grace" name="warnings"
                         domain="[('event_type', 'in', ('warning', 'grace_entered', 'expired'))]"/>
-                <group expand="0" string="Group By">
-                    <filter string="Event Type" name="group_by_event" context="{'group_by': 'event_type'}"/>
-                    <filter string="License" name="group_by_license" context="{'group_by': 'license_id'}"/>
-                    <filter string="Date" name="group_by_date" context="{'group_by': 'event_date:day'}"/>
-                </group>
+                <separator/>
+                <filter string="Group by Event Type" name="group_by_event" context="{'group_by': 'event_type'}"/>
+                <filter string="Group by License" name="group_by_license" context="{'group_by': 'license_id'}"/>
+                <filter string="Group by Date" name="group_by_date" context="{'group_by': 'event_date:day'}"/>
             </search>
         </field>
     </record>
