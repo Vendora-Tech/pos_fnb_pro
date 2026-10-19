@@ -2,7 +2,7 @@
 
 **Feature**: `001-pos-saas-license`  
 **Date**: 2026-10-06  
-**Status**: Completed (Phase 1)
+**Status**: Completed (Phase 1–Phase 6 Implementation Ready)
 
 ---
 
@@ -63,10 +63,10 @@ Format token: `header.payload.signature` (base64url tanpa padding). Header `{"al
 Jalankan test suite menggunakan container Odoo 20:
 
 ```bash
-docker exec -it odoo20-pos-odoo20-1 odoo \
+docker compose exec -T odoo20 odoo \
   --test-enable \
   --stop-after-init \
-  -d odoo20_pos \
-  -i pos_saas_license \
+  -d pos_saas_dev \
+  -u pos_saas_license \
   --test-tags=/pos_saas_license
 ```
