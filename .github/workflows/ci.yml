@@ -272,16 +272,22 @@ jobs:
         if: steps.discover.outputs.modules != ''
         run: |
           MODS="${{ steps.discover.outputs.modules }}"
+          # Batasi test ke modul custom; test core Odoo tidak perlu diulang di CI.
+          TAGS="/${MODS//,/,/}"
           echo "Installing: $MODS"
+          echo "Test tags: $TAGS"
+          # Server utama di container sudah memakai 8069, jadi HttpCase butuh port sendiri.
           docker compose exec -T odoo20 odoo \
             --db_host=db -d ci_test \
             -r "$POSTGRES_USER" -w "$POSTGRES_PASSWORD" \
-            -i "$MODS" --test-enable --stop-after-init \
+            -i "$MODS" --test-enable --test-tags "$TAGS" --http-port=8079 \
+            --stop-after-init \
             --logfile=/dev/stdout --without-demo=all --log-level=test || \
           docker compose exec -T odoo20 odoo \
             --db_host=db -d ci_test \
             -r "$POSTGRES_USER" -w "$POSTGRES_PASSWORD" \
-            -i "$MODS" --test-enable --stop-after-init \
+            -i "$MODS" --test-enable --test-tags "$TAGS" --http-port=8079 \
+            --stop-after-init \
             --logfile=/dev/stdout --log-level=test
 
       - name: Upgrade all (regression)
