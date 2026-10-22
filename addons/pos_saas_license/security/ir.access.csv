@@ -1,0 +1,6 @@
+id,name,model_id,group_id/id,operation,domain
+access_pos_saas_license_user,pos.saas.license user,pos.saas.license,point_of_sale.group_pos_user,r,
+access_pos_saas_license_manager,pos.saas.license manager,pos.saas.license,point_of_sale.group_pos_manager,cru,
+access_pos_saas_license_log_manager,pos.saas.license.log manager,pos.saas.license.log,point_of_sale.group_pos_manager,r,
+access_pos_saas_license_system,pos.saas.license system,pos.saas.license,base.group_system,crud,
+access_pos_saas_license_log_system,pos.saas.license.log system,pos.saas.license.log,base.group_system,crud,

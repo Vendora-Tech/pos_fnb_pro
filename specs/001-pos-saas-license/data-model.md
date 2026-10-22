@@ -19,9 +19,9 @@ Model data utama yang menyimpan status lisensi aktif sistem per database tenant.
 | `company_id` | Many2one | `res.company`, Required, Default=current | Entitas tenant pemilik lisensi (dari `pos_saas_core`) |
 | `tenant_uuid` | Char | Related='company_id.tenant_uuid', Readonly | UUID unik tenant yang terikat dengan lisensi |
 | `merchant_name` | Char | Readonly | Nama penyewa/merchant yang tertera pada lisensi |
-| `license_type` | Selection | Required, `[('subscription', 'Subscription'), ('perpetual', 'Perpetual (Beli Putus)')]` | Jenis model lisensi |
+| `license_type` | Selection | Required, Default='subscription', `[('subscription', 'Subscription'), ('perpetual', 'Perpetual (Beli Putus)')]` | Jenis model lisensi |
 | `database_uuid` | Char | Readonly | Database UUID Odoo yang terikat |
-| `raw_token` | Text | Required | String token mentah (Base64/JWT) yang dimasukkan pengguna |
+| `raw_token` | Text | Optional (kosong sampai token dipasang) | String token mentah (Base64/JWT) yang dimasukkan pengguna. Token kosong menghasilkan `state` `invalid` |
 | `valid_from` | Date | Readonly | Tanggal awal mulai berlaku |
 | `valid_until` | Date | Readonly | Tanggal jatuh tempo kedaluwarsa (False/Null untuk perpetual) |
 | `grace_period_days` | Integer | Default=7 | Jumlah hari masa tenggang toleransi |

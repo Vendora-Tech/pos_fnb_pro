@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<templates id="template" xml:space="preserve">
+    <t t-name="pos_saas_license.LicenseBanner">
+        <t t-if="props.state and props.state !== 'active'">
+            <div class="pos-saas-license-banner alert m-0 py-1 px-3 text-center d-flex align-items-center justify-content-center"
+                 t-att-class="alertClass"
+                 role="alert">
+                <span class="banner-text small">
+                    <t t-esc="props.message"/>
+                </span>
+            </div>
+        </t>
+    </t>
+</templates>

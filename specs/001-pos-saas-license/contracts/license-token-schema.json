@@ -47,11 +47,10 @@
     "grace": {
       "type": "integer",
       "minimum": 0,
-      "default": 7,
       "description": "Grace period tolerance days after expiration date"
     }
   },
-  "required": ["lid", "mch", "typ", "db_uuid", "max_reg", "from"],
+  "required": ["lid", "mch", "typ", "db_uuid", "max_reg", "from", "grace"],
   "additionalProperties": false,
   "allOf": [
     {

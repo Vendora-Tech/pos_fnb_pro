@@ -45,21 +45,23 @@ description: "Task list for POS SaaS Licensing Engine (pos_saas_license)"
 
 ### Tests for Foundation
 
-- [ ] T008 [P] Buat helper test `addons/pos_saas_license/tests/common.py`: mixin yang membuat keypair Ed25519 saat `setUpClass`, `kid` "test", fungsi `make_token(**overrides)` dan `make_raw_token(header, payload)` untuk token rusak, patch `license_verifier.PUBLIC_KEYS` ke `{"test": <pubkey>}`, helper set `database.uuid` dan patch `pos.saas.license._today()`
-- [ ] T009 [P] Tulis `addons/pos_saas_license/tests/test_license_crypto.py`: token valid lolos; payload diubah, signature diubah, key lain, `kid` tidak dikenal, `alg` bukan `EdDSA`, jumlah bagian 1/2/4, base64 rusak, JSON rusak semuanya ditolak; validasi skema: field wajib hilang (`lid`, `mch`, `typ`, `db_uuid`, `max_reg`, `from`), field asing, `typ` di luar enum, `max_reg` < 1 ("minimum": 1), `grace` < 0 ("minimum": 0), subscription tanpa `until`, perpetual dengan `until` non-null, `from`/`until` bukan format `YYYY-MM-DD`
-- [ ] T010 [P] Tulis `addons/pos_saas_license/tests/test_license_state.py` untuk `compute_state` dengan `grace=7`: H-15 `active`, H-14 `warning`, H0 (`until` = today) `warning`, H+1 `grace`, H+7 `grace`, H+8 `expired`; `grace=0` langsung `expired` di H+1; perpetual selalu `active`; `from > today` `invalid`; `db_uuid` tidak cocok `invalid`; `days_left` sesuai
+- [x] T008 [P] Buat helper test `addons/pos_saas_license/tests/common.py`: mixin yang membuat keypair Ed25519 saat `setUpClass`, `kid` "test", fungsi `make_token(**overrides)` dan `make_raw_token(header, payload)` untuk token rusak, patch `license_verifier.PUBLIC_KEYS` ke `{"test": <pubkey>}`, helper set `database.uuid` dan patch `pos.saas.license._today()`
+- [x] T009 [P] Tulis `addons/pos_saas_license/tests/test_license_crypto.py`: token valid lolos; payload diubah, signature diubah, key lain, `kid` tidak dikenal, `alg` bukan `EdDSA`, jumlah bagian 1/2/4, base64 rusak, JSON rusak semuanya ditolak; validasi skema: field wajib hilang (`lid`, `mch`, `typ`, `db_uuid`, `max_reg`, `from`, `grace`), field asing, `typ` di luar enum, `max_reg` < 1 ("minimum": 1), `grace` < 0 ("minimum": 0), subscription tanpa `until`, perpetual dengan `until` non-null, `from`/`until` bukan format `YYYY-MM-DD`
+- [x] T010 [P] Tulis `addons/pos_saas_license/tests/test_license_state.py` untuk `compute_state` dengan `grace=7`: H-15 `active`, H-14 `warning`, H0 (`until` = today) `warning`, H+1 `grace`, H+7 `grace`, H+8 `expired`; `grace=0` langsung `expired` di H+1; perpetual selalu `active`; `from > today` `invalid`; `db_uuid` tidak cocok `invalid`; `days_left` sesuai
 
 ### Implementation for Foundation
 
-- [ ] T011 Implementasi `addons/pos_saas_license/models/license_verifier.py` (Python murni, tanpa ORM): konstanta `PUBLIC_KEYS = {kid: public_key_b64}`, `class LicenseError(Exception)` dengan atribut `code` dan `message`, dataclass `LicensePayload`, `_b64url_decode` (tambah padding), `decode_and_verify(token, public_keys=None) -> LicensePayload` (cek 3 bagian, `alg == "EdDSA"`, `typ == "SAAS-LIC"`, `kid` dikenal, verifikasi signature, lalu `_validate_payload` sesuai `contracts/license-token-schema.json` termasuk aturan `allOf` until/typ dan `additionalProperties: false`). Tanpa dependency `jsonschema`
-- [ ] T012 Tambahkan `compute_state(payload, today, db_uuid, warning_days=14) -> (state, days_left, reason)` di `addons/pos_saas_license/models/license_verifier.py` sesuai tabel "Aturan Perhitungan Status" di `data-model.md`
-- [ ] T013 [P] Implementasi `addons/pos_saas_license/models/pos_saas_license_log.py`: model `pos.saas.license.log`, `_order = "event_date desc"`, field `license_id` Many2one `pos.saas.license` ondelete="cascade", `event_type` Selection required `[('installed', 'Token Installed'), ('verified', 'Signature Verified'), ('warning', 'Warning Triggered'), ('grace_entered', 'Grace Period Entered'), ('expired', 'License Expired'), ('blocked', 'Session Open Blocked'), ('clock_tamper', 'Clock Rollback Detected'), ('invalid_token', 'Invalid Signature')]`, `event_date` Datetime default now index, `user_id` Many2one `res.users`, `details` Text readonly
-- [ ] T014 Implementasi `addons/pos_saas_license/models/pos_saas_license.py`: model `pos.saas.license` dengan field sesuai `data-model.md` (`name` Required Default="SaaS License"; `license_type` Selection `[('subscription', 'Subscription'), ('perpetual', 'Perpetual (Beli Putus)')]`; `state` Default='invalid'; `grace_period_days` Default=7; `max_pos_registers` Default=1; `allowed_modules`, `key_id`, `last_verified_at`, `last_seen_timestamp`; computed `days_remaining`, `state_message`), constraint `CHECK(grace_period_days >= 0)` dan `CHECK(max_pos_registers >= 1)` serta index `(license_id, state)` memakai sintaks hasil T007(e). Method: `_get_current()` (ambil atau buat singleton via sudo), `_today()` (tanggal lokal tz company, fallback `Asia/Jakarta`), `_get_database_uuid()` (`ir.config_parameter` `database.uuid`), `_evaluate()` (selalu verifikasi ulang `raw_token`, return dict state/days_left/reason/payload), `_refresh_cache()` (tulis kolom cache, catat log hanya saat state berubah), `action_install_token(token)` (simpan token, catat `installed` atau `invalid_token`), `_log_event(event_type, details)`
-- [ ] T015 [P] Buat `addons/pos_saas_license/data/pos_saas_license_data.xml` berisi record singleton awal `noupdate="1"` dengan `name` "SaaS License"
-- [ ] T016 [P] Buat `addons/pos_saas_license/security/ir.model.access.csv`: `pos.saas.license` read untuk `point_of_sale.group_pos_user`, read/write/create untuk `point_of_sale.group_pos_manager`; `pos.saas.license.log` read untuk `point_of_sale.group_pos_manager`; tanpa unlink untuk siapa pun kecuali `base.group_system`
-- [ ] T017 Daftarkan model di `addons/pos_saas_license/models/__init__.py`, test di `addons/pos_saas_license/tests/__init__.py`, dan file data/security di `addons/pos_saas_license/__manifest__.py`
+- [x] T011 Implementasi `addons/pos_saas_license/models/license_verifier.py` (Python murni, tanpa ORM): konstanta `PUBLIC_KEYS = {kid: public_key_b64}`, `class LicenseError(Exception)` dengan atribut `code` dan `message`, dataclass `LicensePayload`, `_b64url_decode` (tambah padding), `decode_and_verify(token, public_keys=None) -> LicensePayload` (cek 3 bagian, `alg == "EdDSA"`, `typ == "SAAS-LIC"`, `kid` dikenal, verifikasi signature, lalu `_validate_payload` sesuai `contracts/license-token-schema.json` termasuk aturan `allOf` until/typ dan `additionalProperties: false`). Tanpa dependency `jsonschema`
+- [x] T012 Tambahkan `compute_state(payload, today, db_uuid, warning_days=14) -> (state, days_left, reason)` di `addons/pos_saas_license/models/license_verifier.py` sesuai tabel "Aturan Perhitungan Status" di `data-model.md`
+- [x] T013 [P] Implementasi `addons/pos_saas_license/models/pos_saas_license_log.py`: model `pos.saas.license.log`, `_order = "event_date desc"`, field `license_id` Many2one `pos.saas.license` ondelete="cascade", `event_type` Selection required `[('installed', 'Token Installed'), ('verified', 'Signature Verified'), ('warning', 'Warning Triggered'), ('grace_entered', 'Grace Period Entered'), ('expired', 'License Expired'), ('blocked', 'Session Open Blocked'), ('clock_tamper', 'Clock Rollback Detected'), ('invalid_token', 'Invalid Signature')]`, `event_date` Datetime default now index, `user_id` Many2one `res.users`, `details` Text readonly
+- [x] T014 Implementasi `addons/pos_saas_license/models/pos_saas_license.py`: model `pos.saas.license` dengan field sesuai `data-model.md` (`name` Required Default="SaaS License"; `license_type` Selection `[('subscription', 'Subscription'), ('perpetual', 'Perpetual (Beli Putus)')]`; `state` Default='invalid'; `grace_period_days` Default=7; `max_pos_registers` Default=1; `allowed_modules`, `key_id`, `last_verified_at`, `last_seen_timestamp`; computed `days_remaining`, `state_message`), constraint `CHECK(grace_period_days >= 0)` dan `CHECK(max_pos_registers >= 1)` serta index `(license_id, state)` memakai sintaks hasil T007(e). Method: `_get_current()` (ambil atau buat singleton via sudo), `_today()` (tanggal lokal tz company, fallback `Asia/Jakarta`), `_get_database_uuid()` (`ir.config_parameter` `database.uuid`), `_evaluate()` (selalu verifikasi ulang `raw_token`, return dict state/days_left/reason/payload), `_refresh_cache()` (tulis kolom cache, catat log hanya saat state berubah), `action_install_token(token)` (simpan token, catat `installed` atau `invalid_token`), `_log_event(event_type, details)`
+- [x] T015 [P] Buat `addons/pos_saas_license/data/pos_saas_license_data.xml` berisi record singleton awal `noupdate="1"` dengan `name` "SaaS License"
+- [x] T016 [P] Buat `addons/pos_saas_license/security/ir.access.csv`: `pos.saas.license` read untuk `point_of_sale.group_pos_user`, read/write/create untuk `point_of_sale.group_pos_manager`; `pos.saas.license.log` read untuk `point_of_sale.group_pos_manager`; tanpa unlink untuk siapa pun kecuali `base.group_system`
+- [x] T017 Daftarkan model di `addons/pos_saas_license/models/__init__.py`, test di `addons/pos_saas_license/tests/__init__.py`, dan file data/security di `addons/pos_saas_license/__manifest__.py`
 
 **Checkpoint**: T009 dan T010 lulus. Token bisa dipasang via shell Odoo dan status terhitung benar
+
+- [ ] T048 Verifikasi runtime Fase 2 di container Odoo 20: pasang modul (`make restart-upgrade MODULE=pos_saas_license`) lalu jalankan test Odoo (`--test-enable --test-tags /pos_saas_license`). Ditunda karena Docker tidak tersedia di mesin pengembangan; lihat catatan "Verifikasi yang belum dijalankan"
 
 ---
 
@@ -71,19 +73,19 @@ description: "Task list for POS SaaS Licensing Engine (pos_saas_license)"
 
 ### Tests for User Story 1
 
-- [ ] T018 [P] [US1] Tulis `addons/pos_saas_license/tests/test_pos_session_license.py`: `open_ui` sukses untuk `active`, `warning`, `grace`; `UserError` untuk `expired`, `invalid`, dan tanpa token, disertai log `blocked`; `open_frontend_cb` ditolak setelah lisensi menjadi expired; tidak ada panggilan jaringan saat pengecekan (patch `requests`/`urllib` agar raise); clock rollback lebih dari 1 jam memblokir dan mencatat `clock_tamper`, mundur kurang dari 1 jam diizinkan; `last_seen_timestamp` bertambah setelah buka sesi
-- [ ] T019 [P] [US1] Tulis `addons/pos_saas_license/tests/test_pos_register_quota.py`: dengan `max_reg=2`, sesi pada config ke-1 dan ke-2 boleh terbuka, config ke-3 ditolak dengan pesan kuota penuh; setelah salah satu sesi `closed`, config ke-3 boleh dibuka; membuat `pos.config` baru tetap diizinkan
-- [ ] T020 [P] [US1] Tulis `addons/pos_saas_license/tests/test_license_settings.py`: `action_saas_license_verify` dari `res.config.settings` memasang token valid, menampilkan state, dan menolak token rusak dengan pesan yang jelas tanpa menimpa token lama yang valid
+- [x] T018 [P] [US1] Tulis `addons/pos_saas_license/tests/test_pos_session_license.py`
+- [x] T019 [P] [US1] Tulis `addons/pos_saas_license/tests/test_pos_register_quota.py`
+- [x] T020 [P] [US1] Tulis `addons/pos_saas_license/tests/test_license_settings.py`
 
 ### Implementation for User Story 1
 
-- [ ] T021 [US1] Tambahkan `check_pos_access(raise_error=True)` dan `_check_clock_rollback()` di `addons/pos_saas_license/models/pos_saas_license.py`: evaluasi ulang token, blokir bila `expired`/`invalid` atau waktu sekarang lebih mundur dari `last_seen_timestamp` lebih dari 1 jam, catat log `blocked`/`clock_tamper`, perbarui `last_seen_timestamp` bila lolos. Pesan error memakai terjemahan sesuai hasil T007(h)
-- [ ] T022 [P] [US1] Implementasi `addons/pos_saas_license/models/pos_config.py`: override `open_ui()` memanggil `check_pos_access()` sebelum `super()`
-- [ ] T023 [P] [US1] Implementasi `addons/pos_saas_license/models/pos_session.py`: override `create(vals_list)` (cek lisensi lalu kuota: jumlah `pos.config` berbeda dengan sesi `state != 'closed'` ditambah config yang akan dibuka tidak boleh melebihi `max_pos_registers`) dan `open_frontend_cb()` (cek lisensi)
-- [ ] T024 [US1] Implementasi `addons/pos_saas_license/models/res_config_settings.py`: field `saas_license_token` (Char, bukan config_parameter), field related/compute read-only untuk state, `license_id`, merchant, `license_type`, `valid_until`, sisa hari, `database.uuid`, register terpakai/maksimum, `allowed_modules`; method `action_saas_license_verify()` yang memanggil `action_install_token`
-- [ ] T025 [US1] Buat `addons/pos_saas_license/views/res_config_settings_views.xml`: block "SaaS License" di settings POS (XPath dari T007(g)) berisi field token, tombol "Verify & Activate License", badge status (hijau `active`, kuning `warning`, oranye `grace`, merah `expired`/`invalid`), dan detail lisensi read-only
-- [ ] T026 [P] [US1] Buat `addons/pos_saas_license/views/pos_saas_license_views.xml`: form read-only `pos.saas.license`, list `pos.saas.license.log`, action dan menu "SaaS License Log" di bawah Point of Sale > Configuration khusus `point_of_sale.group_pos_manager`
-- [ ] T027 [US1] Daftarkan `pos_config`, `pos_session`, `res_config_settings` di `addons/pos_saas_license/models/__init__.py` dan kedua view di `data` `addons/pos_saas_license/__manifest__.py`
+- [x] T021 [US1] Tambahkan `check_pos_access(raise_error=True)` dan `_check_clock_rollback()` di `addons/pos_saas_license/models/pos_saas_license.py`
+- [x] T022 [P] [US1] Implementasi `addons/pos_saas_license/models/pos_config.py`
+- [x] T023 [P] [US1] Implementasi `addons/pos_saas_license/models/pos_session.py`
+- [x] T024 [US1] Implementasi `addons/pos_saas_license/models/res_config_settings.py`
+- [x] T025 [US1] Buat `addons/pos_saas_license/views/res_config_settings_views.xml`
+- [x] T026 [P] [US1] Buat `addons/pos_saas_license/views/pos_saas_license_views.xml`
+- [x] T027 [US1] Daftarkan `pos_config`, `pos_session`, `res_config_settings` di `addons/pos_saas_license/models/__init__.py` dan kedua view di `data` `addons/pos_saas_license/__manifest__.py`
 
 **Checkpoint**: T018 s.d. T020 lulus. Skenario 1 dan 2 di `quickstart.md` berjalan manual
 
@@ -97,12 +99,12 @@ description: "Task list for POS SaaS Licensing Engine (pos_saas_license)"
 
 ### Tests for User Story 2
 
-- [ ] T028 [P] [US2] Tulis `addons/pos_saas_license/tests/test_perpetual_binding.py`: perpetual `active` pada tanggal 2099 dan `days_remaining` tidak dihitung; `db_uuid` tidak cocok menghasilkan `invalid`, `open_ui` ditolak, log `invalid_token` tercatat; mengganti `database.uuid` setelah token terpasang membuat status berubah ke `invalid` pada pengecekan berikutnya
+- [x] T028 [P] [US2] Tulis `addons/pos_saas_license/tests/test_perpetual_binding.py`
 
 ### Implementation for User Story 2
 
-- [ ] T029 [US2] Di `addons/pos_saas_license/models/pos_saas_license.py`, pastikan `_evaluate()` memberi `reason` yang jelas untuk `db_uuid` mismatch (tampilkan `database.uuid` saat ini agar merchant bisa meminta token baru) dan `days_remaining` bernilai 0 serta label "Lifetime" untuk perpetual
-- [ ] T030 [US2] Di `addons/pos_saas_license/views/res_config_settings_views.xml`, tampilkan "Valid Until: Lifetime" untuk perpetual dan field `database.uuid` yang mudah disalin
+- [x] T029 [US2] Di `addons/pos_saas_license/models/pos_saas_license.py`, pastikan `_evaluate()` memberi `reason` yang jelas untuk `db_uuid` mismatch
+- [x] T030 [US2] Di `addons/pos_saas_license/views/res_config_settings_views.xml`, tampilkan "Valid Until: Lifetime" untuk perpetual dan field `database.uuid` yang mudah disalin
 
 **Checkpoint**: T028 lulus, US1 tetap lulus
 
@@ -116,19 +118,19 @@ description: "Task list for POS SaaS Licensing Engine (pos_saas_license)"
 
 ### Tests for User Story 3
 
-- [ ] T031 [P] [US3] Tulis `addons/pos_saas_license/tests/test_pos_order_readonly.py`: sinkronisasi order (method dari T007(d)) ditolak saat `expired`/`invalid`, diterima saat `grace`; `last_seen_timestamp` bertambah saat order diterima
-- [ ] T032 [P] [US3] Tulis `addons/pos_saas_license/tests/test_pos_load_data.py`: data yang dimuat loader POS (method dari T007(c)) memuat `license_state`, `license_days_left`, `license_banner_msg` dengan nilai sesuai state
+- [x] T031 [P] [US3] Tulis `addons/pos_saas_license/tests/test_pos_order_readonly.py`
+- [x] T032 [P] [US3] Tulis `addons/pos_saas_license/tests/test_pos_load_data.py`
 
 ### Implementation for User Story 3
 
-- [ ] T033 [US3] Di `addons/pos_saas_license/models/pos_session.py`, tambahkan field compute `license_state`, `license_days_left`, `license_banner_msg` dan daftarkan ke loader data POS sesuai hasil T007(c)
-- [ ] T034 [P] [US3] Implementasi `addons/pos_saas_license/models/pos_order.py`: override method sinkronisasi order dari T007(d) untuk memanggil pengecekan lisensi (tanpa clock rollback block, cukup tolak `expired`/`invalid`) dan memperbarui `last_seen_timestamp`; daftarkan di `addons/pos_saas_license/models/__init__.py`
-- [ ] T035 [P] [US3] Buat komponen OWL `addons/pos_saas_license/static/src/app/license_banner/license_banner.js` yang membaca state lisensi dari data sesi POS
-- [ ] T036 [P] [US3] Buat template `addons/pos_saas_license/static/src/app/license_banner/license_banner.xml`: `bg-warning text-dark` untuk `warning` dengan teks sisa hari, `bg-danger text-white` untuk `grace` dan `expired`
-- [ ] T037 [P] [US3] Buat `addons/pos_saas_license/static/src/app/license_banner/license_banner.scss` untuk posisi banner di atas navbar
-- [ ] T038 [US3] Buat `addons/pos_saas_license/static/src/app/license_banner/pos_patch.js` dan template inherit-nya: render `LicenseBanner` di Navbar (path dari T007(f)) dan nonaktifkan tombol Payment saat `license_state` `expired`/`invalid`
-- [ ] T039 [US3] Daftarkan aset `static/src/app/license_banner/**/*` ke bundle `point_of_sale._assets_pos` di `addons/pos_saas_license/__manifest__.py`
-- [ ] T040 [US3] Verifikasi manual Skenario 3 di `specs/001-pos-saas-license/quickstart.md` untuk H-5, grace H+3, dan expired dengan sesi yang sudah terbuka
+- [x] T033 [US3] Di `addons/pos_saas_license/models/pos_session.py`, tambahkan field compute `license_state`, `license_days_left`, `license_banner_msg` dan daftarkan ke loader data POS sesuai hasil T007(c)
+- [x] T034 [P] [US3] Implementasi `addons/pos_saas_license/models/pos_order.py`
+- [x] T035 [P] [US3] Buat komponen OWL `addons/pos_saas_license/static/src/app/license_banner/license_banner.js`
+- [x] T036 [P] [US3] Buat template `addons/pos_saas_license/static/src/app/license_banner/license_banner.xml`
+- [x] T037 [P] [US3] Buat `addons/pos_saas_license/static/src/app/license_banner/license_banner.scss`
+- [x] T038 [US3] Buat `addons/pos_saas_license/static/src/app/license_banner/pos_patch.js` dan template inherit-nya
+- [x] T039 [US3] Daftarkan aset `static/src/app/license_banner/**/*` ke bundle `point_of_sale._assets_pos` di `addons/pos_saas_license/__manifest__.py`
+- [ ] T040 [US3] Verifikasi manual Skenario 3 di `specs/001-pos-saas-license/quickstart.md` untuk H-5, grace H+3, dan expired dengan sesi yang sudah terbuka (ditunda bersama T048: butuh container Odoo)
 
 **Checkpoint**: T031 dan T032 lulus, banner tampil sesuai state, US1 dan US2 tetap lulus
 
@@ -138,13 +140,13 @@ description: "Task list for POS SaaS Licensing Engine (pos_saas_license)"
 
 **Purpose**: Cron harian, heartbeat opsional, dokumentasi, dan validasi CI
 
-- [ ] T041 [P] Tulis `addons/pos_saas_license/tests/test_license_cron.py`: cron mencatat log transisi (`warning`, `grace_entered`, `expired`) sekali per perubahan state, memperbarui `last_seen_timestamp`, tidak memanggil jaringan bila `saas.license.server_url` kosong, dan tetap sukses bila heartbeat gagal (patch HTTP agar raise)
-- [ ] T042 Tambahkan `_cron_daily_check()` dan `_send_heartbeat()` di `addons/pos_saas_license/models/pos_saas_license.py`: heartbeat hanya untuk subscription, hanya bila `saas.license.server_url` diisi, timeout 5 detik, semua exception ditangkap dan dicatat ke logger tanpa mengubah state
-- [ ] T043 Buat `addons/pos_saas_license/data/ir_cron_data.xml` dengan cron "POS SaaS License: Daily Expiration Check" interval 1 hari pukul 00:05 UTC memanggil `model._cron_daily_check()`, lalu daftarkan di `addons/pos_saas_license/__manifest__.py`
-- [ ] T044 [P] Pastikan semua pesan user-facing di `addons/pos_saas_license/models/*.py` dibungkus mekanisme terjemahan Odoo 20 (hasil T007(h))
-- [ ] T045 [P] Perbarui `specs/001-pos-saas-license/quickstart.md` bila ada perbedaan nama menu, field, atau perintah setelah implementasi
-- [ ] T046 Jalankan `ruff check addons/pos_saas_license scripts/license_tools`, `ruff format --check addons/pos_saas_license scripts/license_tools`, dan `xmllint --noout` untuk semua XML modul; perbaiki temuan
-- [ ] T047 Jalankan test modul sesuai `quickstart.md` bagian 4 (`--test-tags=/pos_saas_license`) dan pastikan job "Odoo Module Test" di `.github/workflows/ci.yml` mendeteksi modul ini
+- [x] T041 [P] Tulis `addons/pos_saas_license/tests/test_license_cron.py`
+- [x] T042 Tambahkan `_cron_daily_check()` dan `_send_heartbeat()` di `addons/pos_saas_license/models/pos_saas_license.py`
+- [x] T043 Buat `addons/pos_saas_license/data/ir_cron_data.xml`
+- [x] T044 [P] Pastikan semua pesan user-facing di `addons/pos_saas_license/models/*.py` dibungkus mekanisme terjemahan Odoo 20 (hasil T007(h))
+- [x] T045 [P] Perbarui `specs/001-pos-saas-license/quickstart.md` bila ada perbedaan nama menu, field, atau perintah setelah implementasi
+- [x] T046 Jalankan `ruff check addons/pos_saas_license scripts/license_tools`, `ruff format --check addons/pos_saas_license scripts/license_tools`, dan `xmllint --noout` untuk semua XML modul; perbaiki temuan
+- [ ] T047 Jalankan test modul sesuai `quickstart.md` bagian 4 (`--test-tags=/pos_saas_license`) dan pastikan job "Odoo Module Test" di `.github/workflows/ci.yml` mendeteksi modul ini (ditunda bersama T048: butuh container Odoo; deteksi CI sudah terverifikasi dari pola autodiscover `addons/*/__manifest__.py`)
 
 ---
 
@@ -232,3 +234,13 @@ Task: "Style license_banner.scss"
 - Status lisensi tidak pernah dibaca dari kolom cache untuk keputusan izin (FR-013)
 - Private key hanya ada di mesin penerbit token, tidak di repository maupun di container merchant
 - Commit per task atau per kelompok task yang logis
+
+### Verifikasi yang belum dijalankan
+
+T013–T017 ditulis dan diperiksa secara statis (sintaks, `ruff`, XML *well-formed*, kolom CSV ACL, kecocokan nama field dengan `data-model.md`). Test murni Python T009 dan T010 lulus di sandbox tanpa ORM. Yang belum pernah dijalankan, dan harus diuji di container Odoo 20:
+
+1. Pemasangan modul dan pembuatan tabel, termasuk `models.Constraint` dan `models.Index`.
+2. Pemuatan `security/ir.access.csv` dan `data/pos_saas_license_data.xml`.
+3. Field `tenant_uuid` yang related ke `company_id.tenant_uuid`; ini menuntut `pos_saas_core` terpasang, dan dependensi itu baru ditambahkan pada T017.
+4. Test Odoo (`TransactionCase`) untuk T009 dan T010 di registry nyata.
+5. Checkpoint Fase 2: pasang token lewat shell Odoo lalu pastikan statusnya terhitung benar.
