@@ -33,3 +33,16 @@ scripts/license_tools/keys/
 
 # Assets
 screenshots/
+
+# Local workstation sync tools
+sync_to_nuralims.sh
+auto_sync_daemon.py
+
+# Node.js & Playwright test run artifacts
+node_modules/
+playwright-report/
+test-results/
+
+# Local agent artifacts
+.github/agents/
+
