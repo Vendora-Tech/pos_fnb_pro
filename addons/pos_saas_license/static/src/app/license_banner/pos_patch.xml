@@ -4,9 +4,9 @@
     <t t-inherit="point_of_sale.Navbar" t-inherit-mode="extension">
         <xpath expr="//div[hasclass('pos-topheader')]" position="before">
             <LicenseBanner
-                state="saasLicenseState"
-                message="saasLicenseMessage"
-                daysLeft="saasLicenseDaysLeft"/>
+                state="this.saasLicenseState"
+                message="this.saasLicenseMessage"
+                daysLeft="this.saasLicenseDaysLeft"/>
         </xpath>
     </t>
 

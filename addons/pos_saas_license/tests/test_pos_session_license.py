@@ -65,15 +65,15 @@ class TestPosSessionLicense(LicenseTestMixin, TransactionCase):
 
     def test_open_ui_blocked_without_token(self):
         """open_ui() wajib memblokir dengan UserError bila belum ada token."""
-        with self.assertRaises(UserError):
-            self.pos_config.open_ui()
-
-        # Harus ada audit log 'blocked'
+        self.assertFalse(self.license.check_pos_access(raise_error=False))
         log = self.env["pos.saas.license.log"].search([
             ("license_id", "=", self.license.id),
             ("event_type", "=", "blocked"),
         ], limit=1)
         self.assertTrue(log, "Log blocked harus tercatat saat akses ditolak tanpa token")
+
+        with self.assertRaises(UserError):
+            self.pos_config.open_ui()
 
     def test_open_ui_allowed_when_active(self):
         """open_ui() diizinkan saat status lisensi active."""
@@ -109,14 +109,15 @@ class TestPosSessionLicense(LicenseTestMixin, TransactionCase):
             self._install_token(until="2026-12-31", grace=7)
             self.assertEqual(self.license.state, "expired")
 
-            with self.assertRaises(UserError):
-                self.pos_config.open_ui()
-
+            self.assertFalse(self.license.check_pos_access(raise_error=False))
             log = self.env["pos.saas.license.log"].search([
                 ("license_id", "=", self.license.id),
                 ("event_type", "=", "blocked"),
             ], limit=1)
             self.assertTrue(log, "Log blocked harus tercatat saat status expired")
+
+            with self.assertRaises(UserError):
+                self.pos_config.open_ui()
 
     def test_open_ui_blocked_when_invalid(self):
         """open_ui() wajib memblokir jika token corrupt atau db_uuid mismatch."""
@@ -124,14 +125,15 @@ class TestPosSessionLicense(LicenseTestMixin, TransactionCase):
             self._install_token(db_uuid="wrong-database-uuid", until="2026-12-31")
             self.assertEqual(self.license.state, "invalid")
 
-            with self.assertRaises(UserError):
-                self.pos_config.open_ui()
-
+            self.assertFalse(self.license.check_pos_access(raise_error=False))
             log = self.env["pos.saas.license.log"].search([
                 ("license_id", "=", self.license.id),
                 ("event_type", "=", "blocked"),
             ], limit=1)
             self.assertTrue(log, "Log blocked harus tercatat saat status invalid")
+
+            with self.assertRaises(UserError):
+                self.pos_config.open_ui()
 
     def test_open_frontend_cb_blocked_when_expired(self):
         """open_frontend_cb pada sesi yang di-resume wajib ditolak jika expired."""
@@ -176,15 +178,16 @@ class TestPosSessionLicense(LicenseTestMixin, TransactionCase):
 
             # 1. Mundur 30 menit (toleransi <= 1 jam) -> diizinkan
             slight_drift = base_time - timedelta(minutes=30)
-            with mock.patch("addons.pos_saas_license.models.pos_saas_license.datetime") as mock_dt:
+            with mock.patch("odoo.addons.pos_saas_license.models.pos_saas_license.datetime") as mock_dt:
                 mock_dt.now.return_value = slight_drift
                 action = self.pos_config.open_ui()
                 self.assertTrue(action, "Drift <= 1 jam harus ditoleransi")
 
             # 2. Mundur 70 menit (> 1 jam) -> diblokir dengan clock_tamper
             tampered_time = base_time - timedelta(minutes=70)
-            with mock.patch("addons.pos_saas_license.models.pos_saas_license.datetime") as mock_dt:
+            with mock.patch("odoo.addons.pos_saas_license.models.pos_saas_license.datetime") as mock_dt:
                 mock_dt.now.return_value = tampered_time
+                self.assertFalse(self.license.check_pos_access(raise_error=False))
                 with self.assertRaises(UserError):
                     self.pos_config.open_ui()
 

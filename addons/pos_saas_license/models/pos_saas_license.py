@@ -15,6 +15,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from odoo import _, api, fields, models
 from odoo.exceptions import UserError
 
+from . import license_verifier
 from .license_verifier import (
     LicenseError,
     compute_state,
@@ -39,9 +40,9 @@ class PosSaasLicense(models.Model):
     """Lisensi aktif satu database tenant."""
 
     _name = "pos.saas.license"
-    _description = "SaaS License"
+    _description = "POS License"
 
-    name = fields.Char(default="SaaS License", required=True)
+    name = fields.Char(default="POS License", required=True)
     license_id = fields.Char(string="License ID", readonly=True, index=True)
     company_id = fields.Many2one(
         "res.company",
@@ -49,6 +50,7 @@ class PosSaasLicense(models.Model):
         required=True,
         default=lambda self: self.env.company,
         index=True,
+        ondelete="cascade",
     )
     tenant_uuid = fields.Char(
         string="Tenant UUID",
@@ -133,21 +135,24 @@ class PosSaasLicense(models.Model):
     def _get_current(self):
         """Ambil lisensi company aktif, buat singleton-nya bila belum ada."""
         company = self.env.company
+        if not company or not company.id:
+            return self
         license_rec = self.sudo().search(
             [("company_id", "=", company.id)], limit=1
         )
         if not license_rec:
             license_rec = self.sudo().create(
-                {"company_id": company.id, "name": "SaaS License"}
+                {"company_id": company.id, "name": "POS License"}
             )
         return license_rec
 
     @api.model
     def _get_database_uuid(self):
         """`database.uuid` tenant; dibandingkan dengan `db_uuid` di payload."""
-        return (
-            self.env["ir.config_parameter"].sudo().get_param("database.uuid") or ""
-        )
+        Param = self.env["ir.config_parameter"].sudo()
+        if hasattr(Param, "get_str"):
+            return Param.get_str("database.uuid") or ""
+        return Param.get_param("database.uuid") or ""
 
     def _company_timezone(self):
         """Zona waktu company, fallback `Asia/Jakarta`."""
@@ -184,8 +189,19 @@ class PosSaasLicense(models.Model):
                 "reason": "no license token installed",
                 "payload": None,
             }
+        public_keys = None
+        if "saas.license.key" in self.env:
+            extra_keys = {
+                k.key_id: k.public_key_b64
+                for k in self.env["saas.license.key"].sudo().search([("active", "=", True)])
+                if k.key_id and k.public_key_b64
+            }
+            if extra_keys:
+                public_keys = dict(license_verifier.PUBLIC_KEYS)
+                public_keys.update(extra_keys)
+
         try:
-            payload = decode_and_verify(token)
+            payload = decode_and_verify(token, public_keys=public_keys)
         except LicenseError as exc:
             return {
                 "state": "invalid",
@@ -193,10 +209,18 @@ class PosSaasLicense(models.Model):
                 "reason": f"{exc.code}: {exc.message}",
                 "payload": None,
             }
+
+        current_db_uuid = self._get_database_uuid()
+        company_tenant_uuid = getattr(self.company_id, "tenant_uuid", False) or getattr(self.env.company, "tenant_uuid", False)
+        if payload and payload.db_uuid == company_tenant_uuid:
+            expected_db_uuid = company_tenant_uuid
+        else:
+            expected_db_uuid = current_db_uuid
+
         state, days_left, reason = compute_state(
             payload,
             self._today(),
-            self._get_database_uuid(),
+            expected_db_uuid,
         )
         return {
             "state": state,
@@ -266,7 +290,7 @@ class PosSaasLicense(models.Model):
 
         result = self._evaluate()
         payload = result["payload"]
-        if payload is None:
+        if payload is None or result["state"] == "invalid":
             self._log_event("invalid_token", result["reason"])
         else:
             self._log_event(
@@ -303,6 +327,74 @@ class PosSaasLicense(models.Model):
 
         return True
 
+    @api.model
+    def _format_humanized_license_error(self, state, reason=""):
+        """Menyusun pesan error lisensi yang ramah pengguna, mudah dipahami kasir/pemilik toko,
+        dan membedakan antara mode debug (developer) vs non-debug (user biasa).
+        """
+        is_debug = bool(self.env.context.get("debug"))
+        reason_str = str(reason or "").lower()
+
+        # Mode Debug: Kembalikan pesan teknis presisi untuk developer
+        if is_debug:
+            return _("POS access blocked: license is %s (%s).") % (state, reason)
+
+        # Mode Non-Debug (Kasir / Merchant): Format pesan humanized, solutif, dan jelas
+        if not reason or "malformed_token" in reason_str or "not_found" in reason_str:
+            return _(
+                "Aplikasi Kasir Belum Diaktifkan\n\n"
+                "Sistem belum mendeteksi lisensi aktif untuk toko ini.\n\n"
+                "Petunjuk untuk Pengelola / Kasir:\n"
+                "1. Masuk ke menu: Point of Sale > Configuration > Settings\n"
+                "2. Temukan bagian 'Store / Merchant Identity'\n"
+                "3. Masukkan token lisensi Anda pada kolom 'License Token' lalu klik 'Verify & Activate Token'\n\n"
+                "Silakan hubungi administrator atau penyedia sistem apabila Anda membutuhkan bantuan."
+            )
+
+        if "expired" in state or "expired" in reason_str:
+            return _(
+                "Masa Berlaku Lisensi Telah Habis\n\n"
+                "Masa aktif lisensi toko Anda telah selesai dan masa tenggang toleransi (grace period) telah berakhir, sehingga transaksi kasir ditangguhkan sementara.\n\n"
+                "Solusi:\n"
+                "1. Lakukan perpanjangan lisensi toko Anda.\n"
+                "2. Buka menu Point of Sale > Configuration > Settings lalu masukkan token lisensi perpanjangan yang baru.\n\n"
+                "Hubungi administrator sistem untuk mengaktifkan kembali akses kasir Anda."
+            )
+
+        if "db_mismatch" in reason_str:
+            return _(
+                "Token Lisensi Tidak Cocok dengan Database Toko\n\n"
+                "Token lisensi yang terpasang terdaftar untuk database toko yang berbeda.\n\n"
+                "Solusi:\n"
+                "1. Pastikan Anda memasukkan token lisensi resmi yang diterbitkan khusus untuk database toko ini.\n"
+                "2. Periksa kembali Database UUID Anda di menu Settings."
+            )
+
+        if "invalid_signature" in reason_str or "unknown_kid" in reason_str:
+            return _(
+                "Verifikasi Keaslian Lisensi Gagal\n\n"
+                "Tanda tangan digital pada token lisensi tidak dapat diverifikasi atau kunci penerbit tidak dikenali.\n\n"
+                "Solusi:\n"
+                "Pastikan Anda menyalin seluruh teks token lisensi secara utuh tanpa ada karakter yang terpotong."
+            )
+
+        if "clock_tamper" in reason_str or "rollback" in reason_str:
+            return _(
+                "Waktu Sistem Perangkat Kasir Tidak Sesuai\n\n"
+                "Sistem mendeteksi tanggal atau jam pada komputer/server kasir mundur dari waktu transaksi sebelumnya.\n\n"
+                "Solusi:\n"
+                "1. Sesuaikan tanggal dan jam perangkat ke waktu saat ini secara otomatis (sinkronkan waktu internet / NTP).\n"
+                "2. Setelah jam komputer benar, silakan buka kembali sesi kasir."
+            )
+
+        # Fallback umum
+        return _(
+            "Akses Kasir Terkendala Lisensi\n\n"
+            "Status lisensi saat ini tidak valid (%s).\n\n"
+            "Solusi:\n"
+            "Silakan periksa pengaturan lisensi di menu Point of Sale > Configuration > Settings atau hubungi administrator sistem."
+        ) % state
+
     def check_pos_access(self, raise_error=True):
         """Gerbang validasi pembukaan dan kelanjutan sesi kasir.
 
@@ -314,7 +406,11 @@ class PosSaasLicense(models.Model):
 
         # 1. Periksa pemunduran waktu server (clock rollback)
         if not record._check_clock_rollback():
-            msg = _("System clock rollback detected. POS access is temporarily blocked for security.")
+            if self.env.context.get("debug"):
+                msg = _("System clock rollback detected. POS access is temporarily blocked for security.")
+            else:
+                msg = record._format_humanized_license_error("invalid", "clock_tampered")
+            record._log_event("blocked", msg)
             if raise_error:
                 raise UserError(msg)
             return False
@@ -325,7 +421,7 @@ class PosSaasLicense(models.Model):
         reason = result["reason"]
 
         if state in ("expired", "invalid"):
-            msg = _("POS access blocked: license is %s (%s).") % (state, reason)
+            msg = record._format_humanized_license_error(state, reason)
             record._log_event("blocked", msg)
             if raise_error:
                 raise UserError(msg)
@@ -364,9 +460,11 @@ class PosSaasLicense(models.Model):
     def _send_heartbeat(self):
         """Mengirim ping status lisensi ke central licensing server secara non-blocking."""
         self.ensure_one()
-        server_url = (
-            self.env["ir.config_parameter"].sudo().get_param("saas.license.server_url") or ""
-        ).strip()
+        Param = self.env["ir.config_parameter"].sudo()
+        if hasattr(Param, "get_str"):
+            server_url = (Param.get_str("saas.license.server_url") or "").strip()
+        else:
+            server_url = (Param.get_param("saas.license.server_url") or "").strip()
         if not server_url:
             return
 

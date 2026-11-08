@@ -1,14 +1,14 @@
 /** @odoo-module **/
 
-import { Component } from "@odoo/owl";
+import { Component, useProps, t } from "@odoo/owl";
 
 export class LicenseBanner extends Component {
     static template = "pos_saas_license.LicenseBanner";
-    static props = {
-        state: { type: String, optional: true },
-        message: { type: String, optional: true },
-        daysLeft: { type: Number, optional: true },
-    };
+    props = useProps({
+        state: t.string().optional("active"),
+        message: t.string().optional(""),
+        daysLeft: t.number().optional(0),
+    });
 
     get isWarning() {
         return this.props.state === "warning";

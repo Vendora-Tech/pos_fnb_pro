@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_company_form_inherit_pos_saas_license" model="ir.ui.view">
+        <field name="name">res.company.form.inherit.pos.saas.license</field>
+        <field name="model">res.company</field>
+        <field name="inherit_id" ref="pos_saas_core.view_company_form_inherit_pos_saas"/>
+        <field name="arch" type="xml">
+            <xpath expr="//page[@name='pos_saas']" position="inside">
+                <group string="POS License &amp; Capacity">
+                    <group>
+                        <field name="saas_license_state" widget="badge" 
+                               decoration-success="saas_license_state == 'active'"
+                               decoration-warning="saas_license_state == 'warning'"
+                               decoration-info="saas_license_state == 'grace'"
+                               decoration-danger="saas_license_state in ('expired', 'invalid')"/>
+                        <field name="saas_license_code" readonly="1" string="License ID"/>
+                        <field name="saas_license_merchant" readonly="1" string="Licensed Merchant"/>
+                        <field name="saas_valid_until" readonly="1"/>
+                        <field name="saas_days_remaining" readonly="1"/>
+                        <field name="saas_max_registers" readonly="1" string="Max Active Registers"/>
+                    </group>
+                    <group>
+                        <field name="saas_license_token" placeholder="Paste your Ed25519 license token here to activate..."/>
+                        <div class="mt-2">
+                            <button name="action_redeem_saas_license" 
+                                    string="Activate / Redeem License" 
+                                    type="object" 
+                                    class="btn-primary" 
+                                    icon="fa-key"/>
+                        </div>
+                    </group>
+                </group>
+            </xpath>
+        </field>
+    </record>
+</odoo>

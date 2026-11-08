@@ -29,7 +29,7 @@ class PosSession(models.Model):
             ("expired", "Expired"),
             ("invalid", "Invalid Token"),
         ],
-        string="SaaS License State",
+        string="License State",
         compute="_compute_license_banner_data",
     )
     license_days_left = fields.Integer(
@@ -59,15 +59,15 @@ class PosSession(models.Model):
 
             if state == "warning":
                 session.license_banner_msg = _(
-                    "⚠️ Lisensi aktif tersisa %d hari lagi. Segera lakukan perpanjangan."
+                    "Lisensi aktif tersisa %d hari lagi. Segera lakukan perpanjangan."
                 ) % days_left
             elif state == "grace":
                 session.license_banner_msg = _(
-                    "🚨 Masa aktif telah berakhir. Sistem dalam masa tenggang toleransi %d hari."
+                    "Masa aktif telah berakhir. Sistem dalam masa tenggang toleransi %d hari."
                 ) % abs(days_left)
             elif state in ("expired", "invalid"):
                 session.license_banner_msg = _(
-                    "⛔ Masa berlaku lisensi telah habis atau tidak valid. Transaksi kasir dikunci."
+                    "Masa berlaku lisensi telah habis atau tidak valid. Transaksi kasir dikunci."
                 )
             else:
                 session.license_banner_msg = False
@@ -101,6 +101,7 @@ class PosSession(models.Model):
             max_registers = license_rec.max_pos_registers or 1
 
             # Ambil semua config_id yang saat ini memiliki sesi aktif (belum closed)
+            self.flush_model(["state", "config_id"])
             active_sessions = self.search([
                 ("state", "!=", "closed"),
                 ("config_id.company_id", "=", company.id),
@@ -110,9 +111,12 @@ class PosSession(models.Model):
             # Jika config ini belum termasuk dalam config aktif, periksa apakah kuota penuh
             if config.id not in active_config_ids and len(active_config_ids) >= max_registers:
                 msg = _(
-                    "POS Register quota exceeded: maximum allowed active registers is %d. "
-                    "Please close an active session or upgrade your subscription plan."
-                ) % max_registers
+                    "Batas Kuota Register Kasir Tercapai: Kuota aktif outlet Anda adalah %d register "
+                    "(saat ini sedang aktif: %d register).\n\n"
+                    "Solusi Operasional:\n"
+                    "1. Tutup salah satu sesi kasir yang sedang aktif di outlet, atau\n"
+                    "2. Hubungi Administrator SaaS Anda untuk menambah kuota register kasir."
+                ) % (max_registers, len(active_config_ids))
                 raise UserError(msg)
 
         return super().create(vals_list)

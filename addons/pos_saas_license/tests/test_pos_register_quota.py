@@ -43,6 +43,11 @@ class TestPosRegisterQuota(LicenseTestMixin, TransactionCase):
     def setUp(self):
         super().setUp()
         self.set_database_uuid(self.db_uuid)
+        # Tutup sesi pra-eksisting agar lingkungan pengujian bersih
+        self.env["pos.session"].search([
+            ("state", "!=", "closed"),
+            ("config_id.company_id", "=", self.company.id),
+        ]).write({"state": "closed"})
         # Pasang token aktif dengan max_reg=2
         token = self.make_token(
             db_uuid=self.db_uuid,

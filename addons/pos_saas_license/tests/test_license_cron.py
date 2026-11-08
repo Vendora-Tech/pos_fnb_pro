@@ -48,7 +48,7 @@ class TestLicenseCron(LicenseTestMixin, TransactionCase):
         with self.patch_today("2026-12-21"):
             self.env["pos.saas.license"]._cron_daily_check()
 
-            self.license.refresh()
+            self.license.invalidate_recordset()
             self.assertEqual(self.license.state, "warning")
             self.assertTrue(self.license.last_seen_timestamp)
 
@@ -61,7 +61,11 @@ class TestLicenseCron(LicenseTestMixin, TransactionCase):
 
     def test_cron_no_network_calls_when_server_url_empty(self):
         """Cron tidak boleh mencoba koneksi jaringan keluar jika server_url tidak diisi."""
-        self.env["ir.config_parameter"].sudo().set_param("saas.license.server_url", False)
+        Param = self.env["ir.config_parameter"].sudo()
+        if hasattr(Param, "set_str"):
+            Param.set_str("saas.license.server_url", "")
+        else:
+            Param.set_param("saas.license.server_url", False)
 
         with self.patch_today("2026-06-01"):
             token = self.make_token(db_uuid=self.db_uuid, until="2026-12-31")
@@ -73,9 +77,11 @@ class TestLicenseCron(LicenseTestMixin, TransactionCase):
 
     def test_cron_graceful_heartbeat_failure(self):
         """Jika heartbeat ke central server gagal/timeout, cron tidak boleh gagal."""
-        self.env["ir.config_parameter"].sudo().set_param(
-            "saas.license.server_url", "https://licensing.example.com/api/heartbeat"
-        )
+        Param = self.env["ir.config_parameter"].sudo()
+        if hasattr(Param, "set_str"):
+            Param.set_str("saas.license.server_url", "https://licensing.example.com/api/heartbeat")
+        else:
+            Param.set_param("saas.license.server_url", "https://licensing.example.com/api/heartbeat")
 
         with self.patch_today("2026-06-01"):
             token = self.make_token(db_uuid=self.db_uuid, until="2026-12-31")
@@ -84,5 +90,5 @@ class TestLicenseCron(LicenseTestMixin, TransactionCase):
             with mock.patch("urllib.request.urlopen", side_effect=RuntimeError("Connection timed out")):
                 # Tidak boleh melempar exception
                 self.env["pos.saas.license"]._cron_daily_check()
-                self.license.refresh()
+                self.license.invalidate_recordset()
                 self.assertEqual(self.license.state, "active")

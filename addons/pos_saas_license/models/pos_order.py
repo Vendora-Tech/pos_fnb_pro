@@ -24,10 +24,13 @@ class PosOrder(models.Model):
 
         # Tolak order baru hanya jika expired atau invalid (grace, warning, active diizinkan)
         if state in ("expired", "invalid"):
-            msg = _("Cannot sync POS orders: license is %s (%s). System is in read-only mode.") % (
-                state,
-                reason,
-            )
+            if self.env.context.get("debug"):
+                msg = _("Cannot sync POS orders: license is %s (%s). System is in read-only mode.") % (
+                    state,
+                    reason,
+                )
+            else:
+                msg = license_rec._format_humanized_license_error(state, reason)
             license_rec._log_event("blocked", msg)
             raise UserError(msg)
 
@@ -35,5 +38,8 @@ class PosOrder(models.Model):
         now_naive = datetime.now(UTC).replace(tzinfo=None)
         if not license_rec.last_seen_timestamp or now_naive > license_rec.last_seen_timestamp:
             license_rec.sudo().write({"last_seen_timestamp": now_naive})
+
+        if not orders:
+            return {"pos.order": []}
 
         return super().sync_from_ui(orders)

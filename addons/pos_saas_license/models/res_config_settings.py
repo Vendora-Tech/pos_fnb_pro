@@ -134,7 +134,14 @@ class ResConfigSettings(models.TransientModel):
         self.ensure_one()
         raw_token = (self.saas_license_token or "").strip()
         if not raw_token:
-            raise UserError(_("Please enter a license token before verifying."))
+            if self.env.context.get("debug"):
+                raise UserError(_("Please enter a license token before verifying."))
+            raise UserError(
+                _(
+                    "Kolom License Token masih kosong.\n\n"
+                    "Silakan tempelkan kode token lisensi yang Anda peroleh sebelum menekan tombol 'Verify & Activate Token'."
+                )
+            )
 
         license_rec = self._get_saas_license()
 
@@ -144,7 +151,14 @@ class ResConfigSettings(models.TransientModel):
         try:
             payload = decode_and_verify(raw_token)
         except LicenseError as exc:
-            raise UserError(_("Invalid license token: %s (%s)") % (exc.code, exc.message)) from exc
+            if self.env.context.get("debug"):
+                raise UserError(_("Invalid license token: %s (%s)") % (exc.code, exc.message)) from exc
+            raise UserError(
+                _(
+                    "Format token lisensi tidak valid atau rusak.\n\n"
+                    "Pastikan Anda menyalin seluruh teks token secara lengkap (terdiri dari 3 segmen yang dipisahkan titik)."
+                )
+            ) from exc
 
         # Periksa kesesuaian database_uuid dan validitas state
         db_uuid = license_rec._get_database_uuid()
@@ -152,7 +166,9 @@ class ResConfigSettings(models.TransientModel):
         state, _days_left, reason = compute_state(payload, today, db_uuid)
 
         if state == "invalid":
-            raise UserError(_("License token cannot be activated: %s") % reason)
+            if self.env.context.get("debug"):
+                raise UserError(_("License token cannot be activated: %s") % reason)
+            raise UserError(license_rec._format_humanized_license_error("invalid", reason))
 
         # Token valid dan dapat diaktivasi -> pasang ke model lisensi
         license_rec.action_install_token(raw_token)

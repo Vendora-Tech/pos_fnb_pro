@@ -32,6 +32,10 @@ TOKEN_TYP = "SAAS-LIC"
 PUBLIC_KEYS = {
     # Key dev untuk uji coba lokal. Ganti dengan key produksi sebelum rilis.
     "dev2026": "Ye1zwvJX+MnRnE+Xc0vRzNnYsCVU7XSCbIZrFWsFvV4=",
+    # Default Signing Key dari modul saas_license_server
+    "prod2026": "ZgQhbY3mV3QnIup+cAm3H0h6LwVFw1lAy/8yZ/nPi0s=",
+    # Production Key 2026 yang dibuat di SaaS License Server
+    "prod@2026": "IaJox8UURVdKjkPSibvZY3NIzoepYb3qGhBVW63wwdY=",
 }
 
 CODE_MALFORMED_TOKEN = "malformed_token"

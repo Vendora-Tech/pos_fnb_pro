@@ -50,7 +50,7 @@ class TestLicenseSettings(LicenseTestMixin, TransactionCase):
         })
         settings.action_saas_license_verify()
 
-        self.license.refresh()
+        self.license.invalidate_recordset()
         self.assertEqual(self.license.license_id, "LIC-SETTINGS-001")
         self.assertEqual(self.license.merchant_name, "Warung Kopi Modern")
         self.assertEqual(self.license.max_pos_registers, 3)
@@ -78,6 +78,6 @@ class TestLicenseSettings(LicenseTestMixin, TransactionCase):
             settings.action_saas_license_verify()
 
         # 3. Token lama harus tetap utuh
-        self.license.refresh()
+        self.license.invalidate_recordset()
         self.assertEqual(self.license.raw_token, initial_token, "Token lama tidak boleh tertimpa jika verifikasi gagal")
         self.assertEqual(self.license.license_id, "LIC-INITIAL-VALID")

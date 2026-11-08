@@ -141,9 +141,14 @@ class LicenseTestMixin:
 
     # ------------------------------------------------------------- konteks
 
-    def set_database_uuid(self, value):
+    @classmethod
+    def set_database_uuid(cls, value):
         """Tulis `database.uuid` di ir.config_parameter dan kembalikan nilainya."""
-        self.env["ir.config_parameter"].sudo().set_param("database.uuid", value)
+        Param = cls.env["ir.config_parameter"].sudo()
+        if hasattr(Param, "set_str"):
+            Param.set_str("database.uuid", value or "")
+        else:
+            Param.set_param("database.uuid", value)
         return value
 
     @contextlib.contextmanager

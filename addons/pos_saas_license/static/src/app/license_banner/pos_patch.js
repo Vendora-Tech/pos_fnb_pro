@@ -4,12 +4,11 @@ import { patch } from "@web/core/utils/patch";
 import { Navbar } from "@point_of_sale/app/components/navbar/navbar";
 import { LicenseBanner } from "./license_banner";
 
-patch(Navbar, {
-    components: {
-        ...Navbar.components,
-        LicenseBanner,
-    },
-});
+// Daftarkan LicenseBanner ke components Navbar
+Navbar.components = {
+    ...Navbar.components,
+    LicenseBanner,
+};
 
 patch(Navbar.prototype, {
     get saasLicenseState() {

@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <templates id="template" xml:space="preserve">
     <t t-name="pos_saas_license.LicenseBanner">
-        <t t-if="props.state and props.state !== 'active'">
+        <t t-if="this.props.state and this.props.state !== 'active'">
             <div class="pos-saas-license-banner alert m-0 py-1 px-3 text-center d-flex align-items-center justify-content-center"
-                 t-att-class="alertClass"
+                 t-att-class="this.alertClass"
                  role="alert">
                 <span class="banner-text small">
-                    <t t-esc="props.message"/>
+                    <t t-out="this.props.message"/>
                 </span>
             </div>
         </t>

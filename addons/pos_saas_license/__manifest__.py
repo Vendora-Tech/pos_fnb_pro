@@ -1,6 +1,6 @@
 {
-    "name": "POS SaaS License",
-    "summary": "Offline-first SaaS licensing engine for POS: Ed25519 token, grace period, register quota, cashier banner.",
+    "name": "POS License",
+    "summary": "Offline-first licensing engine for POS: Ed25519 token, grace period, register quota, cashier banner.",
     "version": "20.0.1.0.0",
     "author": "Vendora-Tech",
     "license": "LGPL-3",
@@ -17,7 +17,7 @@
         "data/pos_saas_license_data.xml",
         "data/ir_cron_data.xml",
         "views/pos_saas_license_views.xml",
-        "views/res_config_settings_views.xml",
+        "views/res_company_views.xml",
     ],
     "assets": {
         "point_of_sale._assets_pos": [
@@ -29,6 +29,7 @@
         ],
     },
     "installable": True,
-    "application": False,
+    "application": True,
+    "module_type": "official",
     "auto_install": False,
 }
