@@ -9,7 +9,6 @@
             <xpath expr="//div[@id='title']" position="after">
                 <group name="saas_outlet_info" string="Outlet Settings">
                     <group>
-                        <field name="tenant_uuid" readonly="1" class="font-monospace"/>
                         <field name="outlet_code" placeholder="e.g. OUTLET-01 / ALSUT-01"/>
                     </group>
                     <group>

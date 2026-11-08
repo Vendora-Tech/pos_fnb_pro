@@ -8,8 +8,8 @@
             <xpath expr="//notebook" position="inside">
                 <page string="Point of Sale" name="pos_saas">
                     <group>
-                        <group string="Tenant Identity">
-                            <field name="tenant_uuid" readonly="1" class="font-monospace"/>
+                        <group string="Store Identity">
+                            <field name="tenant_uuid" readonly="1" class="font-monospace" string="Store UUID"/>
                         </group>
                         <group string="Default Receipt Texts">
                             <field name="receipt_header" placeholder="Default header printed on customer receipts across outlets..."/>

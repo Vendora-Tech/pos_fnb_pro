@@ -12,8 +12,10 @@
     "data": [
         "views/res_company_views.xml",
         "views/pos_config_views.xml",
-        "views/res_config_settings_views.xml",
         "views/pos_order_receipt_views.xml",
+    ],
+    "demo": [
+        "demo/pos_demo_products.xml",
     ],
     "installable": True,
     "application": False,
