@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- List View -->
+    <record id="view_saas_license_record_list" model="ir.ui.view">
+        <field name="name">saas.license.record.list</field>
+        <field name="model">saas.license.record</field>
+        <field name="arch" type="xml">
+            <list string="Tenant Licenses">
+                <field name="name"/>
+                <field name="merchant_name"/>
+                <field name="partner_id"/>
+                <field name="license_type"/>
+                <field name="valid_from"/>
+                <field name="valid_until"/>
+                <field name="max_registers"/>
+                <field name="days_remaining"/>
+                <field name="key_id"/>
+                <field name="state" widget="badge"
+                       decoration-success="state == 'active'"
+                       decoration-info="state == 'draft'"
+                       decoration-danger="state == 'revoked'"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Form View -->
+    <record id="view_saas_license_record_form" model="ir.ui.view">
+        <field name="name">saas.license.record.form</field>
+        <field name="model">saas.license.record</field>
+        <field name="arch" type="xml">
+            <form string="Tenant License">
+                <header>
+                    <button name="action_issue_token"
+                            string="Issue &amp; Sign Token"
+                            type="object"
+                            class="btn-primary"
+                            invisible="state == 'active'"
+                            groups="saas_license_server.group_saas_license_manager"/>
+                    <button name="action_issue_token"
+                            string="Re-Issue Token"
+                            type="object"
+                            class="btn-secondary"
+                            invisible="state != 'active'"
+                            groups="saas_license_server.group_saas_license_manager"/>
+                    <button name="action_renew"
+                            string="Renew License"
+                            type="object"
+                            class="btn-success"
+                            invisible="license_type == 'perpetual' or state == 'draft'"
+                            groups="saas_license_server.group_saas_license_manager"/>
+                    <button name="action_reset_draft"
+                            string="Reset to Draft"
+                            type="object"
+                            class="btn-secondary"
+                            invisible="state == 'draft'"
+                            groups="saas_license_server.group_saas_license_manager"/>
+                    <button name="action_revoke"
+                            string="Revoke License"
+                            type="object"
+                            class="btn-danger"
+                            confirm="Yakin ingin mencabut lisensi ini?"
+                            invisible="state != 'active'"
+                            groups="saas_license_server.group_saas_license_admin"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,active,revoked"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name" string="License ID"/>
+                        <h1><field name="name" readonly="state == 'active'"/></h1>
+                        <label for="merchant_name" string="Merchant Name"/>
+                        <h2><field name="merchant_name" placeholder="Misal: Resto Rasa Nusantara" readonly="state == 'active'"/></h2>
+                    </div>
+
+                    <div class="alert alert-success" role="alert" invisible="not token">
+                        <strong>Token Siap Digunakan:</strong> Salin token di bawah ini dan berikan ke merchant untuk diaktifkan di menu <em>Point of Sale &gt; Configuration &gt; Settings</em>.
+                    </div>
+
+                    <group>
+                        <group string="Store / Merchant Identity">
+                            <field name="partner_id" readonly="state == 'active'"/>
+                            <field name="db_uuid" placeholder="Misal: 4c650da3-befc-11f1-8534-971c6e3cbd00" readonly="state == 'active'"/>
+                            <field name="tenant_uuid" placeholder="Misal: STORE-001 (Opsional)" readonly="state == 'active'"/>
+                            <field name="key_id" readonly="state == 'active'"/>
+                        </group>
+                        <group string="Terms &amp; Quota">
+                            <field name="license_type" widget="radio" readonly="state == 'active'"/>
+                            <field name="valid_from" readonly="state == 'active'"/>
+                            <field name="valid_until" invisible="license_type == 'perpetual'" required="license_type == 'subscription'" readonly="state == 'active'"/>
+                            <field name="max_registers" readonly="state == 'active'"/>
+                            <field name="grace_period" readonly="state == 'active'"/>
+                            <field name="days_remaining" invisible="license_type == 'perpetual'"/>
+                            <field name="issue_date" invisible="not issue_date"/>
+                        </group>
+                    </group>
+
+                    <notebook>
+                        <page string="License Token" name="token_page" invisible="not token">
+                            <group>
+                                <field name="token" widget="CopyClipboardText" readonly="1" class="font-monospace"/>
+                            </group>
+                        </page>
+                        <page string="Modules &amp; Notes" name="notes_page">
+                            <group>
+                                <field name="allowed_modules" placeholder="Misal: pos_saas_license,pos_restaurant" readonly="state == 'active'"/>
+                            </group>
+                            <field name="notes" placeholder="Catatan internal transaksi penjualan / kontrak merchant..."/>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Search View -->
+    <record id="view_saas_license_record_search" model="ir.ui.view">
+        <field name="name">saas.license.record.search</field>
+        <field name="model">saas.license.record</field>
+        <field name="arch" type="xml">
+            <search string="Search Licenses">
+                <field name="name"/>
+                <field name="merchant_name"/>
+                <field name="db_uuid"/>
+                <field name="partner_id"/>
+                <separator/>
+                <filter string="Active / Issued" name="filter_active" domain="[('state', '=', 'active')]"/>
+                <filter string="Draft" name="filter_draft" domain="[('state', '=', 'draft')]"/>
+                <filter string="Revoked" name="filter_revoked" domain="[('state', '=', 'revoked')]"/>
+                <separator/>
+                <filter string="Subscription" name="filter_sub" domain="[('license_type', '=', 'subscription')]"/>
+                <filter string="Perpetual" name="filter_perp" domain="[('license_type', '=', 'perpetual')]"/>
+                <group>
+                    <filter string="Status" name="group_by_state" domain="[]" context="{'group_by': 'state'}"/>
+                    <filter string="License Type" name="group_by_type" domain="[]" context="{'group_by': 'license_type'}"/>
+                    <filter string="Signing Key" name="group_by_key" domain="[]" context="{'group_by': 'key_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Action -->
+    <record id="action_saas_license_record" model="ir.actions.act_window">
+        <field name="name">Store Licenses</field>
+        <field name="res_model">saas.license.record</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'search_default_filter_active': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Belum ada lisensi yang diterbitkan. Buat lisensi pertama Anda!
+            </p>
+        </field>
+    </record>
+</odoo>

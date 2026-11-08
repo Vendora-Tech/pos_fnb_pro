@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Root Menu -->
+    <menuitem id="menu_saas_license_root"
+              name="POS Licenses"
+              sequence="75"
+              groups="saas_license_server.group_saas_license_viewer"/>
+
+    <!-- Operations Menu -->
+    <menuitem id="menu_saas_license_record"
+              name="Store Licenses"
+              parent="menu_saas_license_root"
+              action="action_saas_license_record"
+              sequence="10"/>
+
+    <menuitem id="menu_saas_license_quick_issue"
+              name="Issue License"
+              parent="menu_saas_license_root"
+              action="action_saas_license_wizard"
+              sequence="20"
+              groups="saas_license_server.group_saas_license_manager"/>
+
+    <!-- Configuration Menu -->
+    <menuitem id="menu_saas_license_config"
+              name="Configuration"
+              parent="menu_saas_license_root"
+              sequence="50"
+              groups="saas_license_server.group_saas_license_admin"/>
+
+    <menuitem id="menu_saas_license_key"
+              name="Signing Keys"
+              parent="menu_saas_license_config"
+              action="action_saas_license_key"
+              sequence="10"
+              groups="saas_license_server.group_saas_license_admin"/>
+</odoo>

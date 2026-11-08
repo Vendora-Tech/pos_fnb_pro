@@ -1,0 +1,10 @@
+id,name,model_id,group_id/id,operation,domain
+access_saas_license_record_admin,access.saas.license.record.admin,saas.license.record,saas_license_server.group_saas_license_admin,crud,
+access_saas_license_record_manager,access.saas.license.record.manager,saas.license.record,saas_license_server.group_saas_license_manager,cru,
+access_saas_license_record_viewer,access.saas.license.record.viewer,saas.license.record,saas_license_server.group_saas_license_viewer,r,
+access_saas_license_key_admin,access.saas.license.key.admin,saas.license.key,saas_license_server.group_saas_license_admin,crud,
+access_saas_license_key_manager,access.saas.license.key.manager,saas.license.key,saas_license_server.group_saas_license_manager,r,
+access_saas_license_key_viewer,access.saas.license.key.viewer,saas.license.key,saas_license_server.group_saas_license_viewer,r,
+access_saas_license_wizard_admin,access.saas.license.wizard.admin,saas.license.wizard,saas_license_server.group_saas_license_admin,crud,
+access_saas_license_wizard_manager,access.saas.license.wizard.manager,saas.license.wizard,saas_license_server.group_saas_license_manager,crud,
+access_saas_license_wizard_viewer,access.saas.license.wizard.viewer,saas.license.wizard,saas_license_server.group_saas_license_viewer,r,

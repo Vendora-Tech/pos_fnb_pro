@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_saas_license_wizard_form" model="ir.ui.view">
+        <field name="name">saas.license.wizard.form</field>
+        <field name="model">saas.license.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Issue POS License">
+                <sheet>
+                    <p class="text-muted">
+                        Terbitkan token lisensi baru untuk merchant secara instan.
+                    </p>
+                    <group>
+                        <group string="Merchant Details">
+                            <field name="merchant_name" placeholder="Misal: Resto Rasa Nusantara"/>
+                            <field name="partner_id"/>
+                            <field name="db_uuid" placeholder="Misal: 4c650da3-befc-11f1-8534-971c6e3cbd00"/>
+                            <field name="tenant_uuid" placeholder="Opsional"/>
+                        </group>
+                        <group string="License Terms &amp; Quota">
+                            <field name="license_type" widget="radio"/>
+                            <field name="valid_from"/>
+                            <field name="valid_until" invisible="license_type == 'perpetual'" required="license_type == 'subscription'"/>
+                            <field name="max_registers"/>
+                            <field name="grace_period"/>
+                            <field name="key_id"/>
+                            <field name="license_id_custom" placeholder="Biarkan kosong untuk auto-generate"/>
+                        </group>
+                    </group>
+                </sheet>
+                <footer>
+                    <button name="action_issue_license"
+                            string="Issue &amp; Generate Token"
+                            type="object"
+                            class="btn-primary"
+                            groups="saas_license_server.group_saas_license_manager"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_saas_license_wizard" model="ir.actions.act_window">
+        <field name="name">Issue License</field>
+        <field name="res_model">saas.license.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+</odoo>
