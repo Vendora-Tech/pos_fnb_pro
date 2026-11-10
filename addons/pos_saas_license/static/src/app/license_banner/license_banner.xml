@@ -4,6 +4,7 @@
         <t t-if="this.props.state and this.props.state !== 'active'">
             <div class="pos-saas-license-banner alert m-0 py-1 px-3 text-center d-flex align-items-center justify-content-center"
                  t-att-class="this.alertClass"
+                 t-att-data-state="this.props.state"
                  role="alert">
                 <span class="banner-text small">
                     <t t-out="this.props.message"/>

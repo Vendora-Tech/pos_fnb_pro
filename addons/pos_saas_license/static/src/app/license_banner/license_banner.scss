@@ -16,3 +16,13 @@
         color: #ffffff;
     }
 }
+
+// Hard-block read-only mode saat lisensi expired atau invalid
+body:has(.pos-saas-license-banner.alert-danger) button.pay-order-button,
+body:has(.pos-saas-license-banner[data-state="expired"]) button.pay-order-button,
+body:has(.pos-saas-license-banner[data-state="invalid"]) button.pay-order-button {
+    pointer-events: none !important;
+    opacity: 0.5 !important;
+    cursor: not-allowed !important;
+}
+

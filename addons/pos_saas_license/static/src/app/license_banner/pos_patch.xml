@@ -12,12 +12,8 @@
 
     <!-- 2. Nonaktifkan tombol Payment jika lisensi expired atau invalid (read-only mode) -->
     <t t-inherit="point_of_sale.ActionpadWidget" t-inherit-mode="extension">
-        <xpath expr="//button[hasclass('pay-order-button')]" position="attributes">
-            <attribute name="t-att-disabled">
-                !this.pos.accessRight.disableClickPayment or
-                this.pos.session.license_state === 'expired' or
-                this.pos.session.license_state === 'invalid'
-            </attribute>
+        <xpath expr="//button[contains(@class, 'pay-order-button')]" position="attributes">
+            <attribute name="t-att-disabled">this.isPaymentDisabled</attribute>
         </xpath>
     </t>
 </templates>
