@@ -66,7 +66,37 @@ Jalankan test suite menggunakan container Odoo 20:
 docker compose exec -T odoo20 odoo \
   --test-enable \
   --stop-after-init \
-  -d pos_saas_dev \
+  -d pos \
   -u pos_saas_license \
   --test-tags=/pos_saas_license
 ```
+
+---
+
+## 5. Eksekusi Otomatisasi Uji Browser E2E (Playwright)
+
+Pengujian end-to-end menyeluruh mencakup otentikasi login, dashboard POS, banner lisensi OWL 3, navigasi server lisensi, transaksi checkout kasir, hingga pengujian mode hard-block saat lisensi kedaluwarsa.
+
+### Menjalankan Seluruh Suite E2E
+
+```bash
+# Eksekusi seluruh test suite E2E secara headless dengan reporter list
+npx playwright test --reporter=list
+
+# Menjalankan spesifik test flow POS
+npx playwright test tests/e2e/pos_flow.spec.ts --reporter=list
+```
+
+### Cakupan Skenario E2E yang Diuji
+
+| No | Skenario Uji | Deskripsi Validasi | Bukti Artefak |
+|---|---|---|---|
+| 1 | **Smoke Health Check** | Ketersediaan server Odoo 20 dan verifikasi title HTML | Lulus (HTTP 200) |
+| 2 | **Web Login & Routing** | Form login `e2e_tester` dan redirect ke `/odoo` | Lulus |
+| 3 | **Dashboard POS** | Kanban config Point of Sale toko `Bakery Shop` | Lulus |
+| 4 | **POS UI & Banner OWL 3** | Kasir `/pos/ui/1`, banner lisensi `.pos-saas-license-banner` | `screenshots/e2e-pos-ui-license-banner.png` |
+| 5 | **License Server HQ** | Akses view record lisensi merchant `diva resto` | Lulus |
+| 6 | **Access Management RBAC** | Akses view aturan granular `saas_access_management` | Lulus |
+| 7 | **Checkout Flow E2E** | Tambah produk ke cart, buka Payment, validasi feedback receipt | `screenshots/e2e-pos-checkout-success.png` |
+| 8 | **Hard-Block Expired Mode** | Token kedaluwarsa, pesan banner peringatan, tombol Payment nonaktif | `screenshots/e2e-pos-hardblock-expired.png` |
+

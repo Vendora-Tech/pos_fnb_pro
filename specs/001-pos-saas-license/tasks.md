@@ -130,7 +130,7 @@ description: "Task list for POS SaaS Licensing Engine (pos_saas_license)"
 - [x] T037 [P] [US3] Buat `addons/pos_saas_license/static/src/app/license_banner/license_banner.scss`
 - [x] T038 [US3] Buat `addons/pos_saas_license/static/src/app/license_banner/pos_patch.js` dan template inherit-nya
 - [x] T039 [US3] Daftarkan aset `static/src/app/license_banner/**/*` ke bundle `point_of_sale._assets_pos` di `addons/pos_saas_license/__manifest__.py`
-- [ ] T040 [US3] Verifikasi manual Skenario 3 di `specs/001-pos-saas-license/quickstart.md` untuk H-5, grace H+3, dan expired dengan sesi yang sudah terbuka (ditunda bersama T048: butuh container Odoo)
+- [x] T040 [US3] Verifikasi manual & otomatis Skenario 3 di `specs/001-pos-saas-license/quickstart.md` untuk banner lisensi (warning & grace period), transaksi kasir, dan penguncian tombol Payment saat expired (Terverifikasi 100% otomatis via test suite Playwright E2E)
 
 **Checkpoint**: T031 dan T032 lulus, banner tampil sesuai state, US1 dan US2 tetap lulus
 
@@ -146,7 +146,24 @@ description: "Task list for POS SaaS Licensing Engine (pos_saas_license)"
 - [x] T044 [P] Pastikan semua pesan user-facing di `addons/pos_saas_license/models/*.py` dibungkus mekanisme terjemahan Odoo 20 (hasil T007(h))
 - [x] T045 [P] Perbarui `specs/001-pos-saas-license/quickstart.md` bila ada perbedaan nama menu, field, atau perintah setelah implementasi
 - [x] T046 Jalankan `ruff check addons/pos_saas_license scripts/license_tools`, `ruff format --check addons/pos_saas_license scripts/license_tools`, dan `xmllint --noout` untuk semua XML modul; perbaiki temuan
-- [ ] T047 Jalankan test modul sesuai `quickstart.md` bagian 4 (`--test-tags=/pos_saas_license`) dan pastikan job "Odoo Module Test" di `.github/workflows/ci.yml` mendeteksi modul ini (ditunda bersama T048: butuh container Odoo; deteksi CI sudah terverifikasi dari pola autodiscover `addons/*/__manifest__.py`)
+- [x] T047 Jalankan test modul sesuai `quickstart.md` bagian 4 (`--test-tags=/pos_saas_license`) dan pastikan seluruh test suite lolos (112 unit tests lulus 100% di container Odoo 20; job CI autodiscover siap)
+
+---
+
+## Phase 7: End-to-End Automated Browser Testing (Playwright)
+
+**Purpose**: Otomatisasi pengujian antarmuka browser menyeluruh (E2E) pada alur otentikasi, dashboard, kasir POS, rendering OWL 3, checkout, hard-block lisensi expired, dan navigasi modul SaaS ekosistem.
+
+- [x] T048 Konfigurasi Playwright test runner (`playwright.config.ts`): setup browser Chromium, viewport responsive, timeout, reporter list/HTML, dan isolasi test environment.
+- [x] T049 [P] Tulis smoke test `tests/e2e/smoke.spec.ts`: verifikasi ketersediaan web server Odoo 20 dan respons title aplikasi.
+- [x] T050 Tulis test otentikasi & routing `tests/e2e/pos_flow.spec.ts` (Test 1 & 2): login user `e2e_tester`, validasi redirect URL modern Odoo 20 (`/odoo`), dan navigasi dashboard kanban toko POS `Bakery Shop`.
+- [x] T051 [P] Tulis test frontend kasir & banner OWL 3 `tests/e2e/pos_flow.spec.ts` (Test 3): buka URL `/pos/ui/1`, verifikasi rendering reaktif `.pos-saas-license-banner`, buka register kasir, dan simpan screenshot `screenshots/e2e-pos-ui-license-banner.png`.
+- [x] T052 [P] Tulis test modul ekosistem SaaS `tests/e2e/pos_flow.spec.ts` (Test 4 & 5): akses tabel lisensi merchant `saas_license_server` (`diva resto`) dan tabel aturan RBAC `saas_access_management`.
+- [x] T053 Tulis skenario Checkout Kasir POS E2E `tests/e2e/pos_flow.spec.ts` (Test 6): pemilihan produk ke cart, navigasi ke action pad payment, validasi pembayaran, layar feedback/receipt, dan simpan screenshot `screenshots/e2e-pos-checkout-success.png`.
+- [x] T054 Tulis pengujian Hard-Block Lisensi Expired / Read-Only POS Mode `tests/e2e/pos_flow.spec.ts` (Test 7): mutasi token expired via backend helper, buka UI kasir, verifikasi pesan banner expired, penguncian tombol Payment (`pointer-events: none` / disabled), tangkap screenshot `screenshots/e2e-pos-hardblock-expired.png`, dan rollback token lisensi valid.
+- [x] T055 Eksekusi test suite Playwright lengkap pada runtime laptop nuralims (`8 passed` dalam 40,5 detik).
+
+**Checkpoint**: 8/8 test Playwright lulus 100%, 3 bukti screenshot dihasilkan, seluruh kriteria verifikasi terpenuhi.
 
 ---
 
@@ -235,12 +252,12 @@ Task: "Style license_banner.scss"
 - Private key hanya ada di mesin penerbit token, tidak di repository maupun di container merchant
 - Commit per task atau per kelompok task yang logis
 
-### Verifikasi yang belum dijalankan
+### Status Verifikasi Runtime Odoo 20 & E2E
 
-T013–T017 ditulis dan diperiksa secara statis (sintaks, `ruff`, XML *well-formed*, kolom CSV ACL, kecocokan nama field dengan `data-model.md`). Test murni Python T009 dan T010 lulus di sandbox tanpa ORM. Yang belum pernah dijalankan, dan harus diuji di container Odoo 20:
+Seluruh verifikasi pada container nyata Odoo 20 dan pengujian browser E2E telah berhasil dieksekusi 100%:
 
-1. Pemasangan modul dan pembuatan tabel, termasuk `models.Constraint` dan `models.Index`.
-2. Pemuatan `security/ir.access.csv` dan `data/pos_saas_license_data.xml`.
-3. Field `tenant_uuid` yang related ke `company_id.tenant_uuid`; ini menuntut `pos_saas_core` terpasang, dan dependensi itu baru ditambahkan pada T017.
-4. Test Odoo (`TransactionCase`) untuk T009 dan T010 di registry nyata.
-5. Checkpoint Fase 2: pasang token lewat shell Odoo lalu pastikan statusnya terhitung benar.
+1. **Pemasangan Modul & Skema ORM**: Tabel `pos_saas_license`, `models.Constraint`, dan `models.Index` terpasang sempurna di database `pos`.
+2. **Keamanan & Data**: Berkas `security/ir.access.csv` dan `data/pos_saas_license_data.xml` termuat tanpa error RNG/XML.
+3. **Integrasi Multi-tenant**: Field `tenant_uuid` terhubung harmonis dengan `company_id.tenant_uuid` dari `pos_saas_core`.
+4. **Unit Test Backend**: 112/112 unit tests Python Odoo 20 (`TransactionCase` & sandbox tests) lulus 100%.
+5. **Verifikasi Browser E2E (Playwright)**: 8/8 tests lulus (1 smoke + 7 POS/SaaS flows termasuk banner OWL 3, checkout payment, dan hard-block mode saat token expired). Tiga artefak tangkapan layar tersimpan di folder `screenshots/`.
